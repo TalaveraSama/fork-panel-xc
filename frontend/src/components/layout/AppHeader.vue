@@ -12,6 +12,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -46,7 +48,7 @@ async function logout() {
 <template>
   <header class="fixed top-0 right-0 left-0 lg:left-64 h-16 z-30 bg-white/80 dark:bg-dark-950/80 backdrop-blur-md border-b border-dark-200 dark:border-dark-700 transition-colors duration-200">
     <div class="h-full px-4 flex items-center justify-between">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
         <button
           @click="uiStore.toggleSidebar"
           class="lg:hidden p-2 rounded-lg text-dark-500 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
@@ -54,6 +56,16 @@ async function logout() {
         >
           <Bars3Icon v-if="!uiStore.sidebarOpen" class="w-6 h-6" />
           <XMarkIcon v-else class="w-6 h-6" />
+        </button>
+
+        <button
+          @click="uiStore.toggleSidebarCollapsed"
+          class="hidden lg:inline-flex p-2 rounded-lg text-dark-500 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
+          :aria-label="uiStore.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :title="uiStore.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <ChevronRightIcon v-if="uiStore.sidebarCollapsed" class="w-5 h-5" />
+          <ChevronLeftIcon v-else class="w-5 h-5" />
         </button>
       </div>
 
