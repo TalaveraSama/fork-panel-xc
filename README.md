@@ -239,11 +239,35 @@ journalctl -u fork-panel-xc-worker -f
 
 ## 🔍 Troubleshooting — Panel Won't Start
 
-If the panel fails to start, check the following logs and commands:
+Guía detallada de login: [docs/TROUBLESHOOTING-LOGIN.md](docs/TROUBLESHOOTING-LOGIN.md).
 
-**Nginx error log:**
+### Login fails
 
 ```bash
+# 401 JSON = API OK; 500 = problema de configuración/base de datos
+curl -i http://127.0.0.1/api/auth/me
+
+# ¿Puede PHP-FPM leer el .env? Si no, el login devuelve 500
+sudo -u www-data test -r /home/fork_panel_xc/config/.env && echo "legible" || echo "NO legible"
+```
+
+Arreglo rápido si el `.env` no es legible:
+
+```bash
+sudo chgrp www-data /home/fork_panel_xc/config/.env
+sudo chmod 640 /home/fork_panel_xc/config/.env
+sudo systemctl reload php8.3-fpm
+```
+
+Restablecer la contraseña del admin desde la terminal:
+
+```bash
+sudo -u fork_panel_xc php /home/fork_panel_xc/console.php user:password admin 'NuevaClave123'
+```
+
+If the panel fails to start, check the following logs and commands:
+
+**Nginx error log:**```bash
 sudo tail -n 100 /var/log/nginx/error.log
 ```
 

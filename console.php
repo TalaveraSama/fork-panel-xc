@@ -57,6 +57,7 @@ switch ($command) {
         echo "  module:enable <id>   Enable an installed module\n";
         echo "  module:disable <id>  Disable a module\n";
         echo "  module:uninstall <id> Uninstall a module\n";
+        echo "  user:password <user> <pass>  Reset a panel user's password\n";
         echo "  schedule:run         Run scheduled maintenance once\n";
         echo "  schedule:daemon      Run scheduled maintenance every minute\n";
         echo "  queue:daemon         Process background jobs continuously\n";
@@ -128,6 +129,33 @@ switch ($command) {
 
         echo $ok ? "Done.\n" : "Failed.\n";
         exit($ok ? 0 : 1);
+
+    case 'user:password':
+        $username = $args[0] ?? '';
+        $password = $args[1] ?? '';
+
+        if ($username === '' || $password === '') {
+            fwrite(STDERR, "Usage: user:password <username> <password>\n");
+            exit(1);
+        }
+
+        if (strlen($password) < 8) {
+            fwrite(STDERR, "Password must be at least 8 characters.\n");
+            exit(1);
+        }
+
+        $updated = Db::execute(
+            'UPDATE users SET password_hash = ?, updated_at = ? WHERE username = ?',
+            [password_hash($password, PASSWORD_ARGON2ID), time(), $username]
+        );
+
+        if ($updated === 0) {
+            fwrite(STDERR, "User '{$username}' not found.\n");
+            exit(1);
+        }
+
+        echo "Password updated for '{$username}'.\n";
+        exit(0);
 
     case 'schedule:run':
         $run = static function (): void {

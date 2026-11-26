@@ -67,6 +67,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Systemd services (PHP, Worker, Scheduler, WebSocket)
   - Cron jobs and log rotation
   - SSL certificate generation (Certbot)
+- **Terminal installer** (install.sh) - one-command bootstrap for Ubuntu/Debian
+  - `curl -fsSL …/install.sh | sudo bash`
+  - Dedicated PHP-FPM pool running as `fork_panel_xc` (fixes 500 on login when
+    the default `www-data` pool could not read `config/.env`)
+  - Optional `--ssl` (certbot), `--domain`, `--admin-password`, `--skip-frontend`
+  - Reuses `config/.env` credentials on reinstall
+- **`console.php user:password <user> <pass>`** - reset a panel password from the
+  terminal without the UI
 - **Frontend build pipeline** - Vite with optimized chunks
 - **Development workflow** - Hot reload, linting, formatting
 

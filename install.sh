@@ -136,6 +136,7 @@ if [ ! -d "/etc/php/${PHP_VERSION}/fpm" ]; then
   PHP_VERSION="$(ls -1 /etc/php 2>/dev/null | sort -V | tail -n1 || echo "$PHP_VERSION")"
 fi
 PHP_SOCKET="/run/php/php${PHP_VERSION}-fpm.sock"
+APP_PHP_SOCKET="/run/php/php${PHP_VERSION}-fork_panel_xc.sock"
 
 install_node() {
   local current=""
@@ -285,8 +286,8 @@ CACHE_PATH=${APP_DIR}/storage/cache
 LOG_PATH=${APP_DIR}/storage/logs
 EOF
 
-chown "$APP_USER:$APP_USER" "$APP_DIR/config/.env"
-chmod 600 "$APP_DIR/config/.env"
+chown "$APP_USER:www-data" "$APP_DIR/config/.env"
+chmod 640 "$APP_DIR/config/.env"
 ln -sfn "$APP_DIR/config/.env" "$APP_DIR/.env"
 ok "Configuration written"
 
@@ -322,7 +323,7 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;
         fastcgi_param REQUEST_URI \$request_uri;
-        fastcgi_pass unix:${PHP_SOCKET};
+        fastcgi_pass unix:${APP_PHP_SOCKET};
         fastcgi_read_timeout 300s;
     }
 
@@ -330,7 +331,7 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;
         fastcgi_param REQUEST_URI \$request_uri;
-        fastcgi_pass unix:${PHP_SOCKET};
+        fastcgi_pass unix:${APP_PHP_SOCKET};
         fastcgi_buffering off;
         fastcgi_read_timeout 3600s;
     }
@@ -343,6 +344,33 @@ nginx -t >/dev/null
 ok "nginx configured"
 
 # --------------------------------------------------------------- services ----
+log "Configuring PHP-FPM pool"
+mkdir -p "/etc/php/${PHP_VERSION}/fpm/pool.d"
+cat > "/etc/php/${PHP_VERSION}/fpm/pool.d/fork_panel_xc.conf" <<EOF
+[fork_panel_xc]
+user = ${APP_USER}
+group = ${APP_USER}
+listen = ${APP_PHP_SOCKET}
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.max_requests = 500
+request_terminate_timeout = 300
+php_admin_value[memory_limit] = 512M
+php_admin_value[upload_max_filesize] = 100M
+php_admin_value[post_max_size] = 100M
+php_admin_value[error_log] = ${APP_DIR}/storage/logs/php-fpm-error.log
+php_admin_flag[log_errors] = on
+php_value[session.save_handler] = files
+php_value[session.save_path] = /tmp
+EOF
+ok "PHP-FPM pool configured"
+
 log "Installing systemd units"
 cat > /etc/systemd/system/fork-panel-xc-worker.service <<EOF
 [Unit]
