@@ -1,0 +1,114 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: fork-panel-xc-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MARIADB_DATABASE: ${DB_DATABASE:-fork_panel_xc}
+      MARIADB_USER: ${DB_USERNAME:-fork_panel_xc}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/mariadb/conf.d:/etc/mysql/conf.d:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [fork-panel-xc]
+
+  redis:
+    image: redis:7-alpine
+    container_name: fork-panel-xc-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [fork-panel-xc]
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: fork-panel-xc-php
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+    volumes:
+      - ./src:/home/fork_panel_xc/src:ro
+      - ./console.php:/home/fork_panel_xc/console.php:ro
+      - ./frontend/dist:/home/fork_panel_xc/frontend/public:ro
+      - ./storage:/home/fork_panel_xc/storage
+      - ./config:/home/fork_panel_xc/config:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [fork-panel-xc]
+
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: fork-panel-xc-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/dist:/home/fork_panel_xc/frontend/public:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./storage/logs/nginx:/var/log/nginx
+    depends_on:
+      - php
+    networks: [fork-panel-xc]
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: fork-panel-xc-worker
+    command: php /home/fork_panel_xc/console.php queue:daemon
+    volumes:
+      - ./src:/home/fork_panel_xc/src:ro
+      - ./console.php:/home/fork_panel_xc/console.php:ro
+      - ./storage:/home/fork_panel_xc/storage
+      - ./config:/home/fork_panel_xc/config:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [fork-panel-xc]
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: fork-panel-xc-scheduler
+    command: php /home/fork_panel_xc/console.php schedule:daemon
+    volumes:
+      - ./src:/home/fork_panel_xc/src:ro
+      - ./console.php:/home/fork_panel_xc/console.php:ro
+      - ./storage:/home/fork_panel_xc/storage
+      - ./config:/home/fork_panel_xc/config:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [fork-panel-xc]
+
+volumes:
+  mariadb_data:
+  redis_data:
+
+networks:
+  fork-panel-xc:
+    driver: bridge

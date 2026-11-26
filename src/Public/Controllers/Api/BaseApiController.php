@@ -1,155 +1,52 @@
 <?php
 
-namespace XcVm\Public\Controllers\Api;
+declare(strict_types=1);
 
-use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\User\UserRepository;
+namespace ForkPanelXc\Public\Controllers\Api;
 
-/**
- * BaseApiController — base api controller
- *
- * @package XC_VM_Public_Controllers_Api
- * @author  Divarion_D <https://github.com/Divarion-D>
- * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
- * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
- */
+use ForkPanelXc\Core\Http\ApiRequest;
 
-class BaseApiController {
-	protected $deny = true;
+abstract class BaseApiController
+{
+    protected function pagination(ApiRequest $request): array
+    {
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = (int) $request->query('per_page', 25);
+        $perPage = $perPage < 1 ? 25 : min($perPage, 200);
 
-	protected $downloading = false;
+        return [$page, $perPage, ($page - 1) * $perPage];
+    }
 
-	protected array|false|null $userInfo = null;
+    protected function sort(ApiRequest $request, array $allowed, string $default = 'id'): array
+    {
+        $field = (string) $request->query('sort_field', $default);
+        $field = in_array($field, $allowed, true) ? $field : $default;
+        $direction = strtolower((string) $request->query('sort_direction', 'desc')) === 'asc' ? 'ASC' : 'DESC';
 
-	protected $downloadType = '';
+        return [$field, $direction];
+    }
 
-	public function shutdown() {
-		global $db;
+    protected function paginated(array $rows, int $total, int $page, int $perPage): array
+    {
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'last_page' => $perPage > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
 
-		if ($this->deny) {
-			BruteforceGuard::checkFlood();
-		}
+    protected function require(array $data, array $fields): ?array
+    {
+        $errors = [];
 
-		if (is_object($db)) {
-			$db->close_mysql();
-		}
+        foreach ($fields as $field) {
+            if (!isset($data[$field]) || $data[$field] === '') {
+                $errors[$field] = [sprintf('%s is required', $field)];
+            }
+        }
 
-		if ($this->downloading) {
-			NetworkUtils::stopDownload($this->downloadType, $this->userInfo, getmypid(), intval(SettingsManager::get('max_simultaneous_downloads')));
-		}
-	}
-
-	protected function authenticate($rIP, $rFullLoad = false) {
-		$rUserInfo = null;
-		$rUsername = trim((string) (RequestManager::get('username') ?? ''));
-		$rPassword = (string) (RequestManager::get('password') ?? '');
-		$rToken = trim((string) (RequestManager::get('token') ?? ''));
-
-		if (!empty($rUsername) && !empty($rPassword)) {
-			$rUserInfo = UserRepository::getUserInfo(null, $rUsername, $rPassword, $rFullLoad, false, $rIP);
-		} elseif (!empty($rToken)) {
-			$rUserInfo = UserRepository::getUserInfo(null, $rToken, null, $rFullLoad, false, $rIP);
-		}
-
-		// Active Code transparent auto-activation fallback (e.g. for get.php / playlist / epg)
-		if (!$rUserInfo && class_exists(\XcVm\Domain\Line\ActiveCodeService::class)) {
-			$candidateCode = strtoupper(!empty($rUsername) ? $rUsername : $rToken);
-			if (!empty($candidateCode)) {
-				$codeRow = \XcVm\Domain\Line\ActiveCodeService::getByCode($candidateCode);
-				if ($codeRow) {
-					$deviceInfo = [
-						'mac' => RequestManager::get('mac') ?? '',
-						'device_id' => RequestManager::get('device_id') ?? '',
-						'ip' => $rIP,
-						'user_agent' => trim($_SERVER['HTTP_USER_AGENT'] ?? '')
-					];
-					$actRes = \XcVm\Domain\Line\ActiveCodeService::activateCode($candidateCode, $deviceInfo);
-					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
-						$lineUser = $actRes['line']['username'];
-						$linePass = $actRes['line']['password'];
-						$rUserInfo = UserRepository::getUserInfo(null, $lineUser, $linePass, $rFullLoad, false, $rIP);
-						if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
-							$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
-						}
-					}
-				}
-			}
-		}
-
-		if (!$rUserInfo && empty($rUsername) && empty($rToken)) {
-			generateError('NO_CREDENTIALS');
-		}
-
-		return $rUserInfo;
-	}
-
-	protected function validateUser($rUserInfo, $rUserAgent, $rIP, $rCountryCode) {
-		if (!is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time()) {
-			generateError('EXPIRED');
-		}
-		if ($rUserInfo['is_mag'] || $rUserInfo['is_e2']) {
-			generateError('DEVICE_NOT_ALLOWED');
-		}
-		if (!$rUserInfo['admin_enabled']) {
-			generateError('BANNED');
-		}
-		if (!$rUserInfo['enabled']) {
-			generateError('DISABLED');
-		}
-		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
-		if (($rError = self::restriction($rUserInfo, $rUserAgent, $rIP, $rCountryCode)) !== null) {
-			generateError($rError);
-		}
-	}
-
-	/** The restrictions shared by playlist, EPG, player_api and Enigma2. */
-	public static function restriction(array $rUserInfo, string $rUserAgent, string $rIP, ?string $rCountryCode): ?string {
-		if ($rUserInfo['bypass_ua'] == 0) {
-			if (BlocklistService::checkAndBlockUA(BlocklistService::getBlockedUA(), $rUserAgent, true)) {
-				return 'BLOCKED_USER_AGENT';
-			}
-		}
-
-		if (!SettingsManager::get('restrict_playlists')) {
-			return null;
-		}
-
-		if (empty($rUserAgent) && SettingsManager::get('disallow_empty_user_agents') == 1) {
-			return 'EMPTY_USER_AGENT';
-		}
-
-		if (!empty($rUserInfo['allowed_ips']) && !in_array($rIP, array_map('gethostbyname', $rUserInfo['allowed_ips']))) {
-			return 'NOT_IN_ALLOWED_IPS';
-		}
-
-		if (!empty($rCountryCode)) {
-			$rForceCountry = !empty($rUserInfo['forced_country']);
-
-			if ($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country']) {
-				return 'FORCED_COUNTRY_INVALID';
-			}
-
-			if (!$rForceCountry && !in_array('ALL', SettingsManager::get('allow_countries')) && !in_array($rCountryCode, SettingsManager::get('allow_countries'))) {
-				return 'NOT_IN_ALLOWED_COUNTRY';
-			}
-		}
-
-		if (!empty($rUserInfo['allowed_ua']) && !in_array($rUserAgent, $rUserInfo['allowed_ua'])) {
-			return 'NOT_IN_ALLOWED_UAS';
-		}
-
-		if ($rUserInfo['isp_violate'] == 1) {
-			return 'ISP_BLOCKED';
-		}
-
-		if ($rUserInfo['isp_is_server'] == 1 && !$rUserInfo['is_restreamer']) {
-			return 'ASN_BLOCKED';
-		}
-		return null;
-	}
+        return $errors === [] ? null : $errors;
+    }
 }

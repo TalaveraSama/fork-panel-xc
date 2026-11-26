@@ -1,6 +1,6 @@
 {
-    "name": "vateron-media/xc-vm",
-    "description": "XC_VM IPTV panel — Composer autoloader (PSR-4) deployed as /home/xc_vm/. Regenerate with `composer dump-autoload` from this directory; never run `composer install` on the deploy path (vendor/ is committed and shipped).",
+    "name": "fork-panel-xc/fork-panel-xc",
+    "description": "Fork Panel XC - Open-source IPTV panel forked from XC_VM. Modern, modular, API-first architecture with Vue 3 frontend.",
     "type": "project",
     "license": "AGPL-3.0-or-later",
     "require": {
@@ -19,7 +19,8 @@
     },
     "autoload": {
         "psr-4": {
-            "XcVm\\": "./"
+            "XcVm\\": "./",
+            "ForkPanelXc\\": "./"
         },
         "files": [
             "Core/Error/ErrorHandler.php"
@@ -38,10 +39,10 @@
     },
     "scripts": {
         "post-install-cmd": [
-            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ is committed and shipped. Use 'composer dump-autoload' to regenerate; do not run 'composer install' on the deploy path.\\n\\\");\""
+            "@php -r \"fwrite(STDERR, \\\"[fork-panel-xc] NOTE: vendor/ is committed and shipped. Use 'composer dump-autoload' to regenerate; do not run 'composer install' on the deploy path.\\n\\\");\""
         ],
         "post-update-cmd": [
-            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ + composer.lock are committed. After changing deps, commit composer.lock and re-commit a PRODUCTION-only vendor: composer install --no-dev.\\n\\\");\""
+            "@php -r \"fwrite(STDERR, \\\"[fork-panel-xc] NOTE: vendor/ + composer.lock are committed. After changing deps, commit composer.lock and re-commit a PRODUCTION-only vendor: composer install --no-dev.\\n\\\");\""
         ],
         "refactor": "rector process -c ../build/rector.php",
         "refactor:dry": "rector process -c ../build/rector.php --dry-run"

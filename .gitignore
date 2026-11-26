@@ -24,6 +24,13 @@ src/tmp/**
 # only the directory placeholder so a locally installed module never gets committed.
 src/Modules/*
 !src/Modules/.gitkeep
+# The bundled reference module is part of this fork.
+!src/Modules/ExampleModule/
+!src/Modules/ExampleModule/**
+
+# --- Frontend tooling --------------------------------------------------------
+frontend/node_modules/
+frontend/.vite/
 
 # --- Local feature flags ----------------------------------------------------
 src/bin/xc_fanout/disabled

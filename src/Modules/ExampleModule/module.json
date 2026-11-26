@@ -1,0 +1,90 @@
+{
+  "id": "example_module",
+  "name": "Example Module",
+  "version": "1.0.0",
+  "description": "An example module demonstrating the Fork Panel XC module system",
+  "author": "Fork Panel XC Team",
+  "license": "AGPL-3.0",
+  "dependencies": [],
+  "permissions": [
+    {
+      "id": "example_module.view",
+      "label": "View Example Module",
+      "description": "Access to view the Example Module dashboard"
+    },
+    {
+      "id": "example_module.manage",
+      "label": "Manage Example Module",
+      "description": "Full management access to Example Module"
+    }
+  ],
+  "menu": [
+    {
+      "label": "Example Module",
+      "icon": "puzzle",
+      "route": "example-module.index",
+      "permission": "example_module.view",
+      "order": 90
+    }
+  ],
+  "settings": {
+    "api_key": {
+      "type": "string",
+      "label": "API Key",
+      "description": "External API key for the example service",
+      "required": false,
+      "sensitive": true
+    },
+    "sync_interval": {
+      "type": "integer",
+      "label": "Sync Interval (minutes)",
+      "description": "How often to sync data from external service",
+      "default": 60,
+      "min": 5,
+      "max": 1440
+    },
+    "enable_notifications": {
+      "type": "boolean",
+      "label": "Enable Notifications",
+      "description": "Send notifications when sync completes",
+      "default": true
+    }
+  },
+  "cron_jobs": [
+    {
+      "name": "example_module_sync",
+      "class": "ForkPanelXc\\Modules\\ExampleModule\\CronJobs\\SyncCronJob",
+      "schedule": "*/15 * * * *",
+      "description": "Sync data from external service"
+    }
+  ],
+  "cli_commands": [
+    {
+      "name": "example:sync",
+      "class": "ForkPanelXc\\Modules\\ExampleModule\\Commands\\SyncCommand",
+      "description": "Manually trigger data sync"
+    },
+    {
+      "name": "example:cleanup",
+      "class": "ForkPanelXc\\Modules\\ExampleModule\\Commands\\CleanupCommand",
+      "description": "Clean up old data"
+    }
+  ],
+  "dashboard_widgets": [
+    {
+      "id": "example_module_stats",
+      "name": "Example Module Stats",
+      "component": "ExampleModuleStatsWidget",
+      "size": "medium",
+      "permission": "example_module.view"
+    }
+  ],
+  "api_endpoints": [
+    {
+      "method": "GET",
+      "path": "/example-module/public/data",
+      "handler": "ForkPanelXc\\Modules\\ExampleModule\\Controllers\\PublicController@getData",
+      "auth": false
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+-- Fork Panel XC default settings
+
+INSERT IGNORE INTO settings (section, setting_key, setting_value, updated_at) VALUES
+('general', 'app_name', 'Fork Panel XC', UNIX_TIMESTAMP()),
+('general', 'app_url', '', UNIX_TIMESTAMP()),
+('general', 'default_language', 'en', UNIX_TIMESTAMP()),
+('general', 'timezone', 'UTC', UNIX_TIMESTAMP()),
+('streaming', 'ffmpeg_version', '7.1', UNIX_TIMESTAMP()),
+('streaming', 'segment_time', '6', UNIX_TIMESTAMP()),
+('streaming', 'hls_window', '6', UNIX_TIMESTAMP()),
+('streaming', 'client_prebuffer', '30', UNIX_TIMESTAMP()),
+('streaming', 'max_connections', '1000', UNIX_TIMESTAMP()),
+('streaming', 'fanout_enabled', '1', UNIX_TIMESTAMP()),
+('appearance', 'dark_mode_default', '0', UNIX_TIMESTAMP()),
+('appearance', 'brand_color', '#ea580c', UNIX_TIMESTAMP()),
+('appearance', 'logo_url', '', UNIX_TIMESTAMP()),
+('appearance', 'footer_text', 'Fork Panel XC — Forked from XC_VM by Vateron Media · AGPL-3.0', UNIX_TIMESTAMP()),
+('security', 'force_two_factor', '0', UNIX_TIMESTAMP()),
+('security', 'debug_show_errors', '0', UNIX_TIMESTAMP()),
+('security', 'rate_limit_per_minute', '120', UNIX_TIMESTAMP()),
+('security', 'panel_access_code', '', UNIX_TIMESTAMP()),
+('security', 'allowed_ips', '', UNIX_TIMESTAMP()),
+('cluster', 'cluster_mode', '0', UNIX_TIMESTAMP()),
+('cluster', 'main_url', '', UNIX_TIMESTAMP()),
+('cluster', 'node_name', '', UNIX_TIMESTAMP()),
+('cluster', 'lb_lease_fence', '0', UNIX_TIMESTAMP()),
+('cluster', 'release_canary', '0', UNIX_TIMESTAMP());
