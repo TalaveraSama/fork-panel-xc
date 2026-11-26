@@ -21,6 +21,14 @@
   html {
     scroll-behavior: smooth;
   }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html:not(.dark) {
+    color-scheme: light;
+  }
 }
 
 @layer components {
