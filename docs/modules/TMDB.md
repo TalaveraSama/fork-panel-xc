@@ -33,9 +33,9 @@ sudo -u fork_panel_xc php /home/fork_panel_xc/console.php db:migrate
 
 ## 2. Configurar la API key
 
-**Opción A — panel (recomendada):** *Settings → Modules → TMDB Metadata*.
-Pega la key v3, elige idioma y guarda. Se valida contra TMDB antes de guardarse
-y queda en la tabla `settings` (sección `tmdb`).
+**Opción A — panel (recomendada):** *Settings → Streaming → TMDB — metadatos de
+películas y series* o *Settings → Modules → TMDB Metadata*. Pega la key v3, elige
+idioma y guarda. Se valida contra TMDB antes de guardarse.
 
 **Opción B — entorno:** añade a `config/.env`:
 
@@ -49,8 +49,10 @@ TMDB_API_KEY=tu_api_key_v3
 sudo bash install.sh --tmdb-api-key 'tu_api_key_v3'
 ```
 
-La key del entorno tiene prioridad sobre la de base de datos. En el panel solo
-se muestra enmascarada (`598f••••••••4a62`).
+La key del entorno tiene prioridad sobre la de base de datos. Si defines
+`TMDB_API_KEY` en `config/.env`, el panel la mostrará enmascarada e indicará
+`(config/.env)`; para gestionarla desde la UI elimina esa línea y reinicia
+PHP-FPM. En el panel solo se muestra enmascarada (`598f••••••••4a62`).
 
 > Consigue una key gratuita en themoviedb.org → *Settings → API*. No subas la
 > key al repositorio: `config/.env` está ignorado por git.
