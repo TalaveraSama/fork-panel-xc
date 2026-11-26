@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/fork-panel-xc/fork-panel-xc" /></a>
-  <a href="https://github.com/fork-panel-xc/fork-panel-xc/stargazers"><img src="https://img.shields.io/github/stars/fork-panel-xc/fork-panel-xc?style=flat" /></a>
-  <a href="https://github.com/fork-panel-xc/fork-panel-xc/issues"><img src="https://img.shields.io/github/issues/fork-panel-xc/fork-panel-xc" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/TalaveraSama/fork-panel-xc" /></a>
+  <a href="https://github.com/TalaveraSama/fork-panel-xc/stargazers"><img src="https://img.shields.io/github/stars/TalaveraSama/fork-panel-xc?style=flat" /></a>
+  <a href="https://github.com/TalaveraSama/fork-panel-xc/issues"><img src="https://img.shields.io/github/issues/TalaveraSama/fork-panel-xc" /></a>
 </p>
 
 ![Fork Panel XC dashboard](docs/_media/fork-panel-dashboard.png)
@@ -67,11 +67,14 @@ It enables:
 
 ## 📚 Documentation
 
-- 🇬🇧 **English Guide**
-  [https://fork-panel-xc.github.io/Fork-Panel-XC/](https://fork-panel-xc.github.io/Fork-Panel-XC/)
+- 🇬🇧 **Docs in the repository**
+  [docs/](docs/)
+
+- 🇬🇧 **Fork architecture notes**
+  [docs/FORK.md](docs/FORK.md)
 
 - 🇷🇺 **Руководство на русском**
-  [https://fork-panel-xc.github.io/Fork-Panel-XC/ru/](https://fork-panel-xc.github.io/Fork-Panel-XC/ru/)
+  [docs/ru/](docs/ru/)
 
 ---
 
@@ -79,8 +82,11 @@ It enables:
 
 Migrating from Xtream Codes / XUI.one / XC_VM? Follow the step-by-step migration guide:
 
-- 📖 **Migration Guide**
-  [https://fork-panel-xc.github.io/Fork-Panel-XC/latest/info/migration_guide/](https://fork-panel-xc.github.io/Fork-Panel-XC/latest/info/migration_guide/)
+- 📖 **Upstream migration guide**
+  [https://vateron-media.github.io/XC_VM/latest/info/migration_guide/](https://vateron-media.github.io/XC_VM/latest/info/migration_guide/)
+
+- 🛠️ **Database migrations in this fork**
+  `php console.php db:migrate` (see [docs/FORK.md](docs/FORK.md))
 
 ---
 
@@ -149,24 +155,39 @@ For new installations:
 
 > ✅ Ubuntu 22.04+, Debian 12+
 
+### Un comando (recomendado)
+
 ```bash
-# 1. Update system
-sudo apt update && sudo apt full-upgrade -y
+curl -fsSL https://raw.githubusercontent.com/TalaveraSama/fork-panel-xc/main/install.sh | sudo bash
+```
 
-# 2. Install base tools
-sudo apt install -y curl wget python3 unzip git
+O desde un clon:
 
-# 3. Clone the fork
-git clone https://github.com/fork-panel-xc/fork-panel-xc.git
+```bash
+git clone https://github.com/TalaveraSama/fork-panel-xc.git
 cd fork-panel-xc
+sudo bash install.sh
+```
 
-# 4. Build the frontend
-cd frontend
-npm install
-npm run build
-cd ..
+El instalador detecta la distro, instala nginx/MariaDB/Redis/PHP-FPM, construye
+el frontend, crea la base de datos, escribe `config/.env`, configura nginx y los
+servicios systemd, aplica las migraciones e imprime la contraseña de `admin`.
 
-# 5. Install (installs nginx, MariaDB, Redis, PHP-FPM and configures everything)
+Opciones útiles:
+
+```bash
+sudo bash install.sh --domain panel.example.com --ssl    # HTTPS con certbot
+sudo bash install.sh --admin-password 'MiClaveSegura123' # contraseña fija
+sudo bash install.sh --dir /opt/fork-panel-xc            # otra ruta
+sudo bash install.sh --help                              # todas las opciones
+```
+
+### Instalador Python (alternativa)
+
+```bash
+git clone https://github.com/TalaveraSama/fork-panel-xc.git
+cd fork-panel-xc
+cd frontend && npm install && npm run build && cd ..
 sudo python3 install.py
 ```
 
@@ -275,7 +296,8 @@ curl -i http://127.0.0.1/api/dashboard/stats
 ├─ docker/            # 🐳 Docker images/config
 ├─ tests/             # 🧪 Tests (api-smoke.php, e2e)
 ├─ console.php        # Fork Panel XC CLI
-└─ install.py         # Installer for Ubuntu/Debian
+├─ install.sh         # Instalador de terminal (Ubuntu/Debian)
+└─ install.py         # Instalador Python (alternativa)
 ```
 
 ---
