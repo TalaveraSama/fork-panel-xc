@@ -2,7 +2,12 @@ import { chromium } from 'playwright'
 
 const base = process.env.SHOT_BASE || 'http://localhost:3000'
 const user = process.env.SHOT_USER || 'admin'
-const password = process.env.SHOT_PASS || 'admin-test-pass'
+const password = process.env.SHOT_PASS
+
+if (!password) {
+  console.error('Set SHOT_PASS to the admin password before running this script.')
+  process.exit(2)
+}
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

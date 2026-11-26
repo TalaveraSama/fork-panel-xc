@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Module permissions, routes, menu items, settings schema
   - Cron jobs, CLI commands, dashboard widgets, API endpoints
   - Example module included
+  - **TMDB metadata module** (`tmdb`): search movies/series on themoviedb.org and
+    import poster, backdrop, synopsis, year, runtime, genres and rating when
+    creating VOD entries. API key configurable in Settings → Modules or with
+    `TMDB_API_KEY`; responses cached 24 h. Requires `003_tmdb_metadata.sql`.
+  - Dynamic module routes (`api_routes` in `module.json`) loaded only while the
+    module is enabled
 
 #### Installation & Deployment
 - **Automated installer** (install.py) - Single command deployment

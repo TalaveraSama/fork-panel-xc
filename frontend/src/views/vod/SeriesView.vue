@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUiStore } from '@stores/ui'
 import seriesService from '@services/series'
 import DataTable from '@components/ui/DataTable.vue'
+import { PlusIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -56,6 +57,11 @@ onMounted(fetchSeries)
       <h1 class="text-2xl font-bold text-dark-900 dark:text-white">Series</h1>
       <p class="text-dark-500 dark:text-dark-400 mt-1">Manage TV series and episodes</p>
     </div>
+
+    <router-link to="/series/create" class="btn-primary w-fit">
+      <PlusIcon class="w-5 h-5" />
+      Add Series
+    </router-link>
 
     <div class="card">
       <div class="card-body px-4 py-4">

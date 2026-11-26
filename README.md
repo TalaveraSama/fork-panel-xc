@@ -178,6 +178,7 @@ Opciones útiles:
 ```bash
 sudo bash install.sh --domain panel.example.com --ssl    # HTTPS con certbot
 sudo bash install.sh --admin-password 'MiClaveSegura123' # contraseña fija
+sudo bash install.sh --tmdb-api-key 'TU_API_KEY'         # metadatos TMDB
 sudo bash install.sh --dir /opt/fork-panel-xc            # otra ruta
 sudo bash install.sh --help                              # todas las opciones
 ```
@@ -240,6 +241,13 @@ journalctl -u fork-panel-xc-worker -f
 ## 🔍 Troubleshooting — Panel Won't Start
 
 Guía detallada de login: [docs/TROUBLESHOOTING-LOGIN.md](docs/TROUBLESHOOTING-LOGIN.md).
+
+### TMDB / metadatos
+
+- Módulo no instalado → `console.php module:install tmdb`.
+- `422 TMDB API key is not configured` → configura la key en **Settings → Modules**.
+- `502 SSL certificate` → instala `ca-certificates` en el servidor.
+- Guía completa: [docs/modules/TMDB.md](docs/modules/TMDB.md).
 
 ### Login fails
 
@@ -306,7 +314,7 @@ curl -i http://127.0.0.1/api/dashboard/stats
 │   ├─ Domain/        # Domain layer (Auth, User, Stream, Module, …)
 │   ├─ Public/        # Controllers (Admin API, Player API, Panel API)
 │   ├─ Cli/           # CLI commands & Cron jobs
-│   └─ Modules/       # Modular plugin system (ExampleModule bundled)
+│   └─ Modules/       # Modular plugin system (ExampleModule, Tmdb)
 ├─ frontend/          # 🎨 Vue 3 + Vite Frontend
 │   ├─ src/
 │   │   ├─ views/         # Page components
@@ -389,18 +397,26 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 
 ## ✅ Features
 
-- ✅ **API-first architecture** - Clean REST/GraphQL APIs for all functionality
+- ✅ **API-first architecture** - REST API for all panel functionality
 - ✅ **Modern Vue 3 frontend** - Composition API, Pinia, Vue Router, Tailwind CSS
 - ✅ **Modular plugin system** - Install/manage modules without core modifications
-- ✅ **Real-time dashboard** - Live metrics, WebSocket updates, streaming analytics
+- ✅ **TMDB metadata module** - Poster, backdrop, synopsis, year, runtime, genres and rating imported from themoviedb.org when adding movies and series
+- ✅ **Real-time dashboard** - Live metrics and charts (30 s polling)
 - ✅ **No server restrictions** - Run on any compatible Linux server
 - ✅ **EPG importer** - Full XMLTV/JSON EPG support with merge capabilities
-- ✅ **VOD management** - Movies, Series, Episodes with TMDB integration
+- ✅ **VOD management** - Movies, Series, Episodes
 - ✅ **User/Reseller panel** - Complete subscription & access control
 - ✅ **Security patches** - Hardened against common vulnerabilities
 - ✅ **Load balancing & clustering** - Multi-node support with fanout delivery
 - ✅ **Transcoding** - FFmpeg-based adaptive bitrate streaming
 - ✅ **Clean, responsive UI** - Dark/light mode, mobile-friendly
+
+### TMDB metadata
+
+![Importar desde TMDB](docs/_media/tmdb-picker.png)
+
+Instala el módulo y configura tu API key en **Settings → Modules** (o con
+`--tmdb-api-key` al instalar). Guía completa: [docs/modules/TMDB.md](docs/modules/TMDB.md).
 
 ---
 

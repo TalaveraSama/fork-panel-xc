@@ -25,6 +25,7 @@ import MovieDetailView from '@views/vod/MovieDetailView.vue'
 import MovieCreateView from '@views/vod/MovieCreateView.vue'
 import SeriesView from '@views/vod/SeriesView.vue'
 import SeriesDetailView from '@views/vod/SeriesDetailView.vue'
+import SeriesCreateView from '@views/vod/SeriesCreateView.vue'
 
 // Users & Lines
 import UsersView from '@views/users/UsersView.vue'
@@ -119,6 +120,7 @@ const routes = [
         path: 'series',
         children: [
           { path: '', name: 'series', component: SeriesView },
+          { path: 'create', name: 'series-create', component: SeriesCreateView },
           { path: ':id', name: 'series-detail', component: SeriesDetailView, props: true },
         ],
       },

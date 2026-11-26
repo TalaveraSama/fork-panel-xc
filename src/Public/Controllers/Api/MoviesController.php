@@ -58,8 +58,9 @@ class MoviesController extends BaseApiController
         }
 
         $id = Db::insert(
-            'INSERT INTO streams (stream_display_name, stream_source, stream_icon, stream_type, category_id, year, tmdb_id, enabled, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO streams (stream_display_name, stream_source, stream_icon, stream_type, category_id, year, tmdb_id,
+                                  overview, backdrop, rating, runtime, genres, original_title, enabled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (string) ($data['name'] ?? $data['stream_display_name']),
                 (string) $data['stream_source'],
@@ -68,7 +69,13 @@ class MoviesController extends BaseApiController
                 isset($data['category_id']) && $data['category_id'] !== '' ? (int) $data['category_id'] : null,
                 isset($data['year']) && $data['year'] !== '' ? (int) $data['year'] : null,
                 isset($data['tmdb_id']) && $data['tmdb_id'] !== '' ? (int) $data['tmdb_id'] : null,
-                !empty($data['enabled']) ? 1 : 0,
+                $this->text($data['overview'] ?? null),
+                $this->text($data['backdrop'] ?? null),
+                $this->decimal($data['rating'] ?? null),
+                $this->integer($data['runtime'] ?? null),
+                $this->genres($data['genres'] ?? null),
+                $this->text($data['original_title'] ?? null),
+                array_key_exists('enabled', $data) ? (!empty($data['enabled']) ? 1 : 0) : 1,
                 time(),
                 time(),
             ]
@@ -95,7 +102,10 @@ class MoviesController extends BaseApiController
         }
 
         $data = $request->json();
-        $allowed = array_intersect_key($data, array_flip(['name', 'stream_display_name', 'stream_source', 'stream_icon', 'category_id', 'year', 'tmdb_id', 'enabled']));
+        $allowed = array_intersect_key($data, array_flip([
+            'name', 'stream_display_name', 'stream_source', 'stream_icon', 'category_id', 'year', 'tmdb_id',
+            'overview', 'backdrop', 'rating', 'runtime', 'genres', 'original_title', 'enabled',
+        ]));
 
         if ($allowed === []) {
             return ApiResponse::json(['data' => $this->find($movieId)]);
@@ -104,6 +114,24 @@ class MoviesController extends BaseApiController
         if (isset($allowed['name'])) {
             $allowed['stream_display_name'] = $allowed['name'];
             unset($allowed['name']);
+        }
+
+        foreach (['overview', 'backdrop', 'original_title'] as $field) {
+            if (array_key_exists($field, $allowed)) {
+                $allowed[$field] = $this->text($allowed[$field]);
+            }
+        }
+
+        if (array_key_exists('rating', $allowed)) {
+            $allowed['rating'] = $this->decimal($allowed['rating']);
+        }
+
+        if (array_key_exists('runtime', $allowed)) {
+            $allowed['runtime'] = $this->integer($allowed['runtime']);
+        }
+
+        if (array_key_exists('genres', $allowed)) {
+            $allowed['genres'] = $this->genres($allowed['genres']);
         }
 
         $sets = implode(', ', array_map(static fn (string $key): string => $key . ' = ?', array_keys($allowed)));
@@ -132,5 +160,39 @@ class MoviesController extends BaseApiController
              WHERE s.id = ? AND s.stream_type = 'movie'",
             [$id]
         );
+    }
+
+    private function text(mixed $value): string
+    {
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    private function integer(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $int = (int) $value;
+
+        return $int > 0 ? $int : null;
+    }
+
+    private function decimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return round((float) $value, 1);
+    }
+
+    private function genres(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map('strval', $value));
+        }
+
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 }

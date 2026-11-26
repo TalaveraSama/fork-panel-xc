@@ -70,7 +70,7 @@ class StreamsController extends BaseApiController
                 (string) ($data['stream_icon'] ?? ''),
                 (string) ($data['stream_type'] ?? 'live'),
                 isset($data['category_id']) && $data['category_id'] !== '' ? (int) $data['category_id'] : null,
-                !empty($data['enabled']) ? 1 : 0,
+                array_key_exists('enabled', $data) ? (!empty($data['enabled']) ? 1 : 0) : 1,
                 time(),
                 time(),
             ]

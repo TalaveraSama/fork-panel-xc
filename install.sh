@@ -11,6 +11,7 @@
 #   --email <address>         Let's Encrypt email (implies --ssl when used with --domain)
 #   --ssl                     Request a Let's Encrypt certificate with certbot
 #   --admin-password <pass>   Initial admin password (generated when omitted)
+#   --tmdb-api-key <key>      TMDB v3 API key for movie/series metadata
 #   --dir <path>              Install directory (default: /home/fork_panel_xc)
 #   --branch <name>           Git branch to install (default: main)
 #   --repo <url>              Git repository to clone when not running from a checkout
@@ -27,6 +28,7 @@ BRANCH="${BRANCH:-main}"
 DOMAIN=""
 EMAIL=""
 ADMIN_PASSWORD=""
+TMDB_KEY=""
 ENABLE_SSL=0
 SKIP_FRONTEND=0
 FORCE=0
@@ -58,6 +60,7 @@ Options:
   --email <address>         Let's Encrypt email (default: admin@<domain>)
   --ssl                     Request a Let's Encrypt certificate with certbot
   --admin-password <pass>   Initial admin password (generated when omitted)
+  --tmdb-api-key <key>      TMDB v3 API key for movie/series metadata
   --dir <path>              Install directory (default: /home/fork_panel_xc)
   --branch <name>           Git branch to install (default: main)
   --repo <url>              Repository to clone when not running from a checkout
@@ -75,6 +78,7 @@ while [ $# -gt 0 ]; do
     --email) EMAIL="${2:-}"; shift 2 ;;
     --ssl) ENABLE_SSL=1; shift ;;
     --admin-password) ADMIN_PASSWORD="${2:-}"; shift 2 ;;
+    --tmdb-api-key) TMDB_KEY="${2:-}"; shift 2 ;;
     --dir) APP_DIR="${2:-}"; shift 2 ;;
     --branch) BRANCH="${2:-}"; shift 2 ;;
     --repo) REPO_URL="${2:-}"; shift 2 ;;
@@ -187,6 +191,9 @@ if [ -f "$APP_DIR/config/.env" ]; then
   if [ -z "$ADMIN_PASSWORD" ]; then
     ADMIN_PASSWORD="$(grep -E '^APP_ADMIN_PASSWORD=' "$APP_DIR/config/.env" | head -n1 | cut -d= -f2- | tr -d '"' || true)"
   fi
+  if [ -z "$TMDB_KEY" ]; then
+    TMDB_KEY="$(grep -E '^TMDB_API_KEY=' "$APP_DIR/config/.env" | head -n1 | cut -d= -f2- | tr -d '"' || true)"
+  fi
 fi
 
 [ -n "$DB_PASSWORD" ] || DB_PASSWORD="$(openssl rand -hex 24 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
@@ -280,6 +287,8 @@ JWT_REFRESH_TTL=10080
 STREAM_TOKEN_SECRET=${STREAM_SECRET}
 STREAM_TOKEN_TTL=3600
 APP_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+TMDB_API_KEY=${TMDB_KEY}
 
 STORAGE_PATH=${APP_DIR}/storage
 CACHE_PATH=${APP_DIR}/storage/cache
@@ -436,6 +445,19 @@ log "Applying database migrations"
   cd "$APP_DIR"
   runuser -u "$APP_USER" -- php "$APP_DIR/console.php" db:migrate
 )
+
+log "Installing bundled TMDB module"
+(
+  cd "$APP_DIR"
+  runuser -u "$APP_USER" -- php "$APP_DIR/console.php" module:install tmdb || \
+    warn "TMDB module could not be installed automatically; install it from Modules."
+)
+
+if [ -n "$TMDB_KEY" ]; then
+  ok "TMDB metadata enabled"
+else
+  warn "TMDB API key not set: add it in Settings → Modules or rerun with --tmdb-api-key."
+fi
 
 # ------------------------------------------------------------------- start ----
 log "Starting services"

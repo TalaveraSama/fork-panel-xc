@@ -61,6 +61,24 @@ A module is a directory under `src/Modules/<Name>/` with a `module.json`
 manifest (`id`, `name`, `version`, `description`, `author`, `permissions`,
 optional `cron_jobs`, `cli_commands`, `dashboard_widgets`, `api_endpoints`).
 
+HTTP routes declared in `module.json` under `api_routes` are registered at
+runtime by `ForkPanelXc\Domain\Module\ModuleRouteLoader`, but only while the
+module is installed and enabled in the `modules` table:
+
+```json
+"api_routes": [
+  {
+    "method": "GET",
+    "path": "/api/tmdb/search",
+    "handler": "ForkPanelXc\\Modules\\Tmdb\\Controllers\\TmdbController@search",
+    "middleware": ["auth", "permission:tmdb.use"]
+  }
+]
+```
+
+Disabling a module removes its routes on the next request (404), so a broken
+module cannot take down the API.
+
 ```
 php console.php module:list
 php console.php module:install example_module

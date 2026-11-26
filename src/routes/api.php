@@ -72,8 +72,12 @@ $router->group('/api', function (Router $router): void {
 
     $router->group('/series', function (Router $router): void {
         $router->get('', [SeriesController::class, 'index']);
+        $router->post('', [SeriesController::class, 'store'], ['permission:vod.create']);
         $router->get('/{id}', [SeriesController::class, 'show']);
+        $router->put('/{id}', [SeriesController::class, 'update'], ['permission:vod.edit']);
+        $router->delete('/{id}', [SeriesController::class, 'destroy'], ['permission:vod.delete']);
         $router->get('/{id}/episodes', [SeriesController::class, 'episodes']);
+        $router->post('/{id}/episodes', [SeriesController::class, 'storeEpisode'], ['permission:vod.edit']);
     });
 
     $router->group('/users', function (Router $router): void {
@@ -196,5 +200,8 @@ $router->get('/live/{token}', [StreamingController::class, 'live']);
 $router->get('/movie/{token}', [StreamingController::class, 'movie']);
 $router->get('/series/{token}', [StreamingController::class, 'series']);
 $router->get('/epg/{token}.xml', [StreamingController::class, 'epgXml']);
+
+// ---- Module-provided routes (installed + enabled modules) -----------------
+\ForkPanelXc\Domain\Module\ModuleRouteLoader::register($router);
 
 return $router;

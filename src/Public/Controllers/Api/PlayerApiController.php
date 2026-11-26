@@ -109,9 +109,15 @@ class PlayerApiController extends BaseApiController
                 'stream_type' => 'movie',
                 'stream_id' => (int) $row['id'],
                 'stream_icon' => (string) ($row['stream_icon'] ?? ''),
-                'rating' => '0',
+                'rating' => (string) ($row['rating'] ?? '0'),
+                'rating_5based' => round(((float) ($row['rating'] ?? 0)) / 2, 1),
                 'year' => (string) ($row['year'] ?? ''),
                 'category_id' => (string) ($row['category_id'] ?? ''),
+                'plot' => (string) ($row['overview'] ?? ''),
+                'backdrop_path' => [(string) ($row['backdrop'] ?? '')],
+                'genre' => (string) ($row['genres'] ?? ''),
+                'duration' => isset($row['runtime']) ? $row['runtime'] . ' min' : '',
+                'releasedate' => isset($row['year']) ? $row['year'] . '-01-01' : '',
             ];
         }, $rows));
     }
@@ -120,7 +126,17 @@ class PlayerApiController extends BaseApiController
     {
         $this->line = $this->currentLine($request);
 
-        return ApiResponse::json(Db::select('SELECT * FROM series WHERE enabled = 1 ORDER BY name'));
+        return ApiResponse::json(array_map(static fn (array $row): array => [
+            'num' => (int) $row['id'],
+            'name' => $row['name'],
+            'series_id' => (int) $row['id'],
+            'cover' => (string) ($row['cover'] ?? ''),
+            'plot' => (string) ($row['overview'] ?? $row['description'] ?? ''),
+            'backdrop_path' => [(string) ($row['backdrop'] ?? '')],
+            'rating' => (string) ($row['rating'] ?? '0'),
+            'genre' => (string) ($row['genres'] ?? ''),
+            'releaseDate' => (string) ($row['first_air_date'] ?? ''),
+        ], Db::select('SELECT * FROM series WHERE enabled = 1 ORDER BY name')));
     }
 
     public function seriesInfo(ApiRequest $request): ApiResponse

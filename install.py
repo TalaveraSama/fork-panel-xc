@@ -138,7 +138,7 @@ def deploy_files():
     say('✓ Files deployed', C.GREEN)
 
 
-def write_env(db_name, db_user, db_pass, admin_password):
+def write_env(db_name, db_user, db_pass, admin_password, tmdb_key=''):
     say('▶ Writing configuration')
     (BASE / 'config').mkdir(parents=True, exist_ok=True)
 
@@ -165,6 +165,7 @@ JWT_REFRESH_TTL=10080
 STREAM_TOKEN_SECRET={password(64)}
 STREAM_TOKEN_TTL=3600
 APP_ADMIN_PASSWORD={admin_password}
+TMDB_API_KEY={tmdb_key}
 
 STORAGE_PATH={BASE}/storage
 CACHE_PATH={BASE}/storage/cache
@@ -308,9 +309,18 @@ def migrate():
     say('✓ Database ready', C.GREEN)
 
 
+def install_tmdb_module():
+    say('▶ Installing TMDB module')
+    subprocess.run(
+        f'cd {BASE} && sudo -u fork_panel_xc /usr/bin/php {BASE}/console.php module:install tmdb',
+        shell=True, check=False
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description='Fork Panel XC installer')
     parser.add_argument('--admin-password', default=None, help='password for the initial admin user')
+    parser.add_argument('--tmdb-api-key', default=None, help='TMDB v3 API key for metadata')
     parser.add_argument('--skip-deps', action='store_true', help='skip apt package installation')
     args = parser.parse_args()
 
@@ -326,6 +336,7 @@ def main():
         say('Warning: this installer targets Ubuntu/Debian.', C.YELLOW)
 
     admin_password = args.admin_password or password(16)
+    tmdb_key = args.tmdb_api_key or os.environ.get('TMDB_API_KEY', '')
 
     if not args.skip_deps:
         install_dependencies()
@@ -333,10 +344,11 @@ def main():
     create_user()
     db_name, db_user, db_pass = create_database()
     deploy_files()
-    write_env(db_name, db_user, db_pass, admin_password)
+    write_env(db_name, db_user, db_pass, admin_password, tmdb_key)
     write_nginx()
     write_services()
     migrate()
+    install_tmdb_module()
 
     run(f'systemctl restart php{php_version()}-fpm')
     run('systemctl restart nginx')

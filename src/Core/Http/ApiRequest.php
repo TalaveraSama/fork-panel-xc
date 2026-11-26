@@ -64,7 +64,8 @@ class ApiRequest
         $contentType = $this->headers['Content-Type'] ?? '';
 
         if (str_contains($contentType, 'application/json')) {
-            $raw = file_get_contents('php://input');
+            $raw = (string) file_get_contents('php://input');
+            $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw; // strip UTF-8 BOM
             $decoded = json_decode($raw ?: '[]', true);
 
             return is_array($decoded) ? $decoded : [];

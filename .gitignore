@@ -19,6 +19,14 @@ src/tmp/**
 !src/tmp/**/
 !src/tmp/**/.gitkeep
 
+# Runtime storage (logs, cache, sessions) keeps only .gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+storage/sessions/*
+!storage/sessions/.gitkeep
+
 # --- Locally installed modules ----------------------------------------------
 # Modules are installed per panel and ship from their own repositories; keep
 # only the directory placeholder so a locally installed module never gets committed.

@@ -63,12 +63,20 @@ class SeriesController extends BaseApiController
         }
 
         $id = Db::insert(
-            'INSERT INTO series (name, description, cover, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO series (name, description, cover, tmdb_id, overview, backdrop, rating, genres, original_title, first_air_date, enabled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (string) ($data['name'] ?? $data['title']),
-                (string) ($data['description'] ?? ''),
-                (string) ($data['cover'] ?? ''),
-                !empty($data['enabled']) ? 1 : 0,
+                $this->text($data['overview'] ?? $data['description'] ?? null),
+                $this->text($data['cover'] ?? $data['stream_icon'] ?? null),
+                $this->integer($data['tmdb_id'] ?? null),
+                $this->text($data['overview'] ?? null),
+                $this->text($data['backdrop'] ?? null),
+                $this->decimal($data['rating'] ?? null),
+                $this->genres($data['genres'] ?? null),
+                $this->text($data['original_title'] ?? null),
+                $this->text($data['first_air_date'] ?? null),
+                array_key_exists('enabled', $data) ? (!empty($data['enabled']) ? 1 : 0) : 1,
                 time(),
                 time(),
             ]
@@ -80,7 +88,10 @@ class SeriesController extends BaseApiController
     public function update(ApiRequest $request, string $id): ApiResponse
     {
         $data = $request->json();
-        $allowed = array_intersect_key($data, array_flip(['name', 'title', 'description', 'cover', 'enabled']));
+        $allowed = array_intersect_key($data, array_flip([
+            'name', 'title', 'description', 'overview', 'cover', 'stream_icon', 'backdrop', 'rating',
+            'genres', 'original_title', 'first_air_date', 'tmdb_id', 'enabled',
+        ]));
 
         if ($allowed === []) {
             return ApiResponse::error('No supported fields', 422);
@@ -89,6 +100,29 @@ class SeriesController extends BaseApiController
         if (isset($allowed['title'])) {
             $allowed['name'] = $allowed['title'];
             unset($allowed['title']);
+        }
+
+        if (isset($allowed['stream_icon'])) {
+            $allowed['cover'] = $allowed['stream_icon'];
+            unset($allowed['stream_icon']);
+        }
+
+        foreach (['description', 'overview', 'cover', 'backdrop', 'original_title', 'first_air_date'] as $field) {
+            if (array_key_exists($field, $allowed)) {
+                $allowed[$field] = $this->text($allowed[$field]);
+            }
+        }
+
+        if (array_key_exists('rating', $allowed)) {
+            $allowed['rating'] = $this->decimal($allowed['rating']);
+        }
+
+        if (array_key_exists('genres', $allowed)) {
+            $allowed['genres'] = $this->genres($allowed['genres']);
+        }
+
+        if (array_key_exists('tmdb_id', $allowed)) {
+            $allowed['tmdb_id'] = $this->integer($allowed['tmdb_id']);
         }
 
         $sets = implode(', ', array_map(static fn (string $key): string => $key . ' = ?', array_keys($allowed)));
@@ -114,5 +148,74 @@ class SeriesController extends BaseApiController
         return ApiResponse::json([
             'data' => Db::select('SELECT * FROM episodes WHERE series_id = ? ORDER BY season_num, episode_num', [(int) $id]),
         ]);
+    }
+
+    public function storeEpisode(ApiRequest $request, string $id): ApiResponse
+    {
+        $seriesId = (int) $id;
+
+        if (Db::first('SELECT id FROM series WHERE id = ?', [$seriesId]) === null) {
+            return ApiResponse::error('Series not found', 404);
+        }
+
+        $data = $request->json();
+        $errors = $this->require($data, ['title', 'source']);
+
+        if ($errors !== null) {
+            return ApiResponse::error('Validation failed', 422, $errors);
+        }
+
+        $episodeId = Db::insert(
+            'INSERT INTO episodes (series_id, season_num, episode_num, title, source, duration, enabled, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                $seriesId,
+                max(1, (int) ($data['season_num'] ?? 1)),
+                max(1, (int) ($data['episode_num'] ?? 1)),
+                (string) $data['title'],
+                (string) $data['source'],
+                (int) ($data['duration'] ?? 0),
+                !empty($data['enabled']) ? 1 : 0,
+                time(),
+            ]
+        );
+
+        return ApiResponse::json([
+            'data' => Db::first('SELECT * FROM episodes WHERE id = ?', [$episodeId]),
+        ], 201);
+    }
+
+    private function text(mixed $value): string
+    {
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    private function integer(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $int = (int) $value;
+
+        return $int > 0 ? $int : null;
+    }
+
+    private function decimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return round((float) $value, 1);
+    }
+
+    private function genres(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map('strval', $value));
+        }
+
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 }
