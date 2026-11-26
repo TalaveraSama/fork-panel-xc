@@ -14,6 +14,8 @@
   <a href="https://github.com/fork-panel-xc/fork-panel-xc/issues"><img src="https://img.shields.io/github/issues/fork-panel-xc/fork-panel-xc" /></a>
 </p>
 
+![Fork Panel XC dashboard](docs/_media/fork-panel-dashboard.png)
+
 ---
 
 # 📑 Table of Contents
