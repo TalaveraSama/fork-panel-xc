@@ -196,7 +196,7 @@ class PlayerApiController extends BaseApiController
             return null;
         }
 
-        $line = Db::first('SELECT * FROM lines WHERE username = ? LIMIT 1', [$username]);
+        $line = Db::first('SELECT * FROM user_lines WHERE username = ? LIMIT 1', [$username]);
 
         if ($line === null) {
             return null;

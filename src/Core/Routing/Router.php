@@ -160,7 +160,11 @@ final class Router
             $class = $name;
         }
 
-        $arguments = $args === '' ? [] : array_map('trim', explode(',', $args));
+        $arguments = $args === '' ? [] : array_map(static function (string $argument): int|string {
+            $argument = trim($argument);
+
+            return ctype_digit($argument) ? (int) $argument : $argument;
+        }, explode(',', $args));
 
         if (!class_exists($class)) {
             return ApiResponse::error(sprintf('Middleware %s not found', $class), 500);

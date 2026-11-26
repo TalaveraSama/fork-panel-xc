@@ -35,8 +35,7 @@ RUN mkdir -p storage/logs storage/cache storage/sessions \
     && chown -R fork_panel_xc:fork_panel_xc storage
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
-
-USER fork_panel_xc
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 EXPOSE 9000
 

@@ -6,7 +6,7 @@ namespace ForkPanelXc\Core\Middleware;
 
 use ForkPanelXc\Core\Http\ApiRequest;
 use ForkPanelXc\Core\Http\ApiResponse;
-use ForkPanelXc\Domain\User\User;
+use ForkPanelXc\Domain\User\PanelUser;
 
 final class PermissionMiddleware
 {
@@ -14,7 +14,7 @@ final class PermissionMiddleware
     {
         $user = $request->user();
 
-        if (!$user instanceof User) {
+        if (!$user instanceof PanelUser) {
             return ApiResponse::error('Authentication required', 401);
         }
 

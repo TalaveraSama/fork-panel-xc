@@ -7,7 +7,7 @@ namespace ForkPanelXc\Domain\Auth;
 use ForkPanelXc\Core\Support\Db;
 use ForkPanelXc\Core\Support\Env;
 use ForkPanelXc\Core\Support\Jwt;
-use ForkPanelXc\Domain\User\User;
+use ForkPanelXc\Domain\User\PanelUser;
 
 /**
  * Authentication service for the Fork Panel XC API.
@@ -68,7 +68,7 @@ final class AuthService
         return $this->completeLogin((int) $claims['sub']);
     }
 
-    public function validateToken(string $token): ?User
+    public function validateToken(string $token): ?PanelUser
     {
         $claims = Jwt::decode($token);
 
@@ -85,7 +85,7 @@ final class AuthService
             return null;
         }
 
-        return User::fromRow($row);
+        return PanelUser::fromRow($row);
     }
 
     public function changePassword(int $userId, string $current, string $new): AuthResult
@@ -123,7 +123,7 @@ final class AuthService
             return AuthResult::failure('Account is disabled');
         }
 
-        $user = User::fromRow($row);
+        $user = PanelUser::fromRow($row);
         [$access, $refresh] = Jwt::issue($user->id());
 
         Db::execute('UPDATE users SET last_login = ? WHERE id = ?', [time(), $user->id()]);

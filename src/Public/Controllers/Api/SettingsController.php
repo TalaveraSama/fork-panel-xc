@@ -155,8 +155,12 @@ class SettingsController extends BaseApiController
         return $this->sectionResponse($section);
     }
 
-    private function cast(string $value): mixed
+    private function cast(?string $value): mixed
     {
+        if ($value === null) {
+            return null;
+        }
+
         if ($value === 'true' || $value === '1') {
             return true;
         }

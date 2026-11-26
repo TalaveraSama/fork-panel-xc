@@ -16,7 +16,7 @@ class DashboardController extends BaseApiController
         $onlineStreams = (int) Db::column("SELECT COUNT(*) FROM streams WHERE status = 'online'");
         $totalUsers = (int) Db::column('SELECT COUNT(*) FROM users');
         $activeUsers = (int) Db::column('SELECT COUNT(*) FROM users WHERE enabled = 1');
-        $connections = (int) Db::column('SELECT COUNT(*) FROM lines WHERE connected = 1');
+        $connections = (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE connected = 1');
 
         $byType = [];
 
@@ -93,7 +93,7 @@ class DashboardController extends BaseApiController
             $disk = (int) round((1 - $free / $total) * 100);
         }
 
-        $connections = (int) Db::column('SELECT COUNT(*) FROM lines WHERE connected = 1');
+        $connections = (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE connected = 1');
 
         return [
             'cpu' => (int) min(100, round(($load[0] / $cores) * 100)),
@@ -105,7 +105,7 @@ class DashboardController extends BaseApiController
 
     private function currentBandwidth(int $connections): float
     {
-        $row = Db::first('SELECT SUM(bitrate) AS total FROM lines WHERE connected = 1');
+        $row = Db::first('SELECT SUM(bitrate) AS total FROM user_lines WHERE connected = 1');
 
         return round(((float) ($row['total'] ?? 0)) / 1000, 2);
     }

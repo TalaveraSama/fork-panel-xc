@@ -38,7 +38,7 @@ class UsersController extends BaseApiController
         $rows = Db::select(
             sprintf(
                 'SELECT id, username, email, enabled, is_admin, is_reseller, created_at, last_login,
-                        (SELECT COUNT(*) FROM lines WHERE lines.user_id = users.id) AS lines_count
+                        (SELECT COUNT(*) FROM user_lines WHERE user_lines.user_id = users.id) AS lines_count
                  FROM users WHERE %s ORDER BY %s %s LIMIT %d OFFSET %d',
                 $whereSql,
                 $field,
@@ -189,8 +189,8 @@ class UsersController extends BaseApiController
     public function stats(ApiRequest $request, string $id): ApiResponse
     {
         return ApiResponse::json(['data' => [
-            'lines' => (int) Db::column('SELECT COUNT(*) FROM lines WHERE user_id = ?', [(int) $id]),
-            'connections' => (int) Db::column('SELECT COUNT(*) FROM lines WHERE user_id = ? AND connected = 1', [(int) $id]),
+            'lines' => (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE user_id = ?', [(int) $id]),
+            'connections' => (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE user_id = ? AND connected = 1', [(int) $id]),
             'last_login' => Db::column('SELECT last_login FROM users WHERE id = ?', [(int) $id]),
         ]]);
     }
@@ -259,9 +259,9 @@ class UsersController extends BaseApiController
     public function linesIndex(ApiRequest $request): ApiResponse
     {
         [$page, $perPage, $offset] = $this->pagination($request);
-        $total = (int) Db::column('SELECT COUNT(*) FROM lines');
+        $total = (int) Db::column('SELECT COUNT(*) FROM user_lines');
         $rows = Db::select(
-            sprintf('SELECT * FROM lines ORDER BY id DESC LIMIT %d OFFSET %d', $perPage, $offset)
+            sprintf('SELECT * FROM user_lines ORDER BY id DESC LIMIT %d OFFSET %d', $perPage, $offset)
         );
 
         return ApiResponse::json($this->paginated($rows, $total, $page, $perPage));
@@ -269,7 +269,7 @@ class UsersController extends BaseApiController
 
     public function lineShow(ApiRequest $request, string $id): ApiResponse
     {
-        $row = Db::first('SELECT * FROM lines WHERE id = ?', [(int) $id]);
+        $row = Db::first('SELECT * FROM user_lines WHERE id = ?', [(int) $id]);
 
         return $row === null
             ? ApiResponse::error('Line not found', 404)

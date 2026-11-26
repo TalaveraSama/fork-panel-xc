@@ -2,7 +2,7 @@ SHELL := /bin/bash
 FRONTEND := frontend
 PHP ?= php
 
-.PHONY: help install build frontend-install migrate serve dev check clean
+.PHONY: help install build frontend-install migrate serve dev check check-api clean
 
 help:
 	@echo "Fork Panel XC"
@@ -13,6 +13,7 @@ help:
 	@echo "  make dev               Run API (:8080) and Vite dev server (:3000)"
 	@echo "  make migrate           Apply pending database migrations"
 	@echo "  make check             Parse the API PHP files and build the frontend"
+	@echo "  make check-api         Run the database-free API smoke test"
 	@echo "  make clean             Remove build output"
 
 install:
@@ -29,6 +30,9 @@ migrate:
 
 check:
 	cd $(FRONTEND) && npm ci --no-audit --no-fund && npm run check:php && npm run build
+
+check-api:
+	$(PHP) tests/api-smoke.php
 
 serve:
 	$(PHP) console.php serve 8080

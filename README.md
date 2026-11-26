@@ -188,6 +188,9 @@ The panel is served at `http://localhost/`.
 # Backend (needs PHP 8.3 + MariaDB + Redis)
 php console.php serve 8080
 
+# Database-free API smoke test (router, JWT, stream tokens)
+php tests/api-smoke.php
+
 # Frontend with hot reload (proxies /api to :8080)
 cd frontend && npm install && npm run dev
 ```
@@ -247,15 +250,16 @@ curl -i http://127.0.0.1/api/dashboard/stats
 
 ## 📂 Project Structure
 
-```text.
+```text
 ├─ docs/              # 📚 Project documentation
 ├─ lb_configs/        # ⚙️ Configurations for building Load Balancer (LB)
-├─ src/               # 💻 Backend PHP code (API-first)
-│   ├─ Core/          # Core functionality (Error handling, Logging, Validation, etc.)
-│   ├─ Domain/        # Domain layer (Stream, User, Reseller, EPG, etc.)
-│   ├─ Public/        # Public controllers (Admin API, Player API, Panel API)
+├─ src/               # 💻 Backend (legacy XcVm panel + ForkPanelXc API)
+│   ├─ Api/           # API runtime, front controller, migrations
+│   ├─ Core/          # Shared core (Error, Logging, Validation, Http, Support…)
+│   ├─ Domain/        # Domain layer (Auth, User, Stream, Module, …)
+│   ├─ Public/        # Controllers (Admin API, Player API, Panel API)
 │   ├─ Cli/           # CLI commands & Cron jobs
-│   └─ Modules/       # Modular plugin system
+│   └─ Modules/       # Modular plugin system (ExampleModule bundled)
 ├─ frontend/          # 🎨 Vue 3 + Vite Frontend
 │   ├─ src/
 │   │   ├─ views/         # Page components
@@ -263,11 +267,13 @@ curl -i http://127.0.0.1/api/dashboard/stats
 │   │   ├─ stores/        # Pinia stores
 │   │   ├─ router/        # Vue Router config
 │   │   ├─ services/      # API services
-│   │   ├─ composables/   # Vue composables
+│   │   ├─ layouts/       # Admin & auth layouts
 │   │   └─ utils/         # Utilities
-│   └─ public/            # Static assets
-└─ tests/             # 🧪 Tests (unit, e2e)
-```
+│   └─ dist/              # Production build (gitignored)
+├─ docker/            # 🐳 Docker images/config
+├─ tests/             # 🧪 Tests (api-smoke.php, e2e)
+├─ console.php        # Fork Panel XC CLI
+└─ install.py         # Installer for Ubuntu/Debian
 ```
 
 ---

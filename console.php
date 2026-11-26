@@ -133,8 +133,8 @@ switch ($command) {
         $run = static function (): void {
             Db::execute('DELETE FROM password_resets WHERE expires_at < ?', [time()]);
 
-            $connections = (int) Db::column('SELECT COUNT(*) FROM lines WHERE connected = 1');
-            $bandwidth = (float) Db::column('SELECT COALESCE(SUM(bitrate), 0) FROM lines WHERE connected = 1');
+            $connections = (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE connected = 1');
+            $bandwidth = (float) Db::column('SELECT COALESCE(SUM(bitrate), 0) FROM user_lines WHERE connected = 1');
 
             Db::execute(
                 'INSERT INTO stats_hourly (hour_label, inbound, outbound, connections, created_at) VALUES (?, ?, ?, ?, ?)',
@@ -154,8 +154,8 @@ switch ($command) {
         while (true) {
             try {
                 Db::execute('DELETE FROM password_resets WHERE expires_at < ?', [time()]);
-                $connections = (int) Db::column('SELECT COUNT(*) FROM lines WHERE connected = 1');
-                $bandwidth = (float) Db::column('SELECT COALESCE(SUM(bitrate), 0) FROM lines WHERE connected = 1');
+                $connections = (int) Db::column('SELECT COUNT(*) FROM user_lines WHERE connected = 1');
+                $bandwidth = (float) Db::column('SELECT COALESCE(SUM(bitrate), 0) FROM user_lines WHERE connected = 1');
                 Db::execute(
                     'INSERT INTO stats_hourly (hour_label, inbound, outbound, connections, created_at) VALUES (?, ?, ?, ?, ?)',
                     [date('H:i'), $bandwidth, $bandwidth, $connections, time()]

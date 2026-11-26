@@ -7,7 +7,7 @@ namespace ForkPanelXc\Domain\User;
 /**
  * Panel user entity used by the Fork Panel XC API.
  */
-final class User
+final class PanelUser
 {
     public function __construct(
         private int $id,
