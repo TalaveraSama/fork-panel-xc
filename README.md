@@ -249,6 +249,12 @@ Guía detallada de login: [docs/TROUBLESHOOTING-LOGIN.md](docs/TROUBLESHOOTING-L
 - `502 SSL certificate` → instala `ca-certificates` en el servidor.
 - Guía completa: [docs/modules/TMDB.md](docs/modules/TMDB.md).
 
+### Library Scanner
+
+- No detecta archivos → revisa extensiones y nombres (`S01E02` / `1x02`).
+- Todo aparece `missing` → alguna carpeta configurada ya no existe.
+- Guía completa: [docs/modules/LIBRARY.md](docs/modules/LIBRARY.md).
+
 ### Login fails
 
 ```bash
@@ -314,7 +320,7 @@ curl -i http://127.0.0.1/api/dashboard/stats
 │   ├─ Domain/        # Domain layer (Auth, User, Stream, Module, …)
 │   ├─ Public/        # Controllers (Admin API, Player API, Panel API)
 │   ├─ Cli/           # CLI commands & Cron jobs
-│   └─ Modules/       # Modular plugin system (ExampleModule, Tmdb)
+│   └─ Modules/       # Modular plugin system (ExampleModule, Tmdb, Library)
 ├─ frontend/          # 🎨 Vue 3 + Vite Frontend
 │   ├─ src/
 │   │   ├─ views/         # Page components
@@ -401,6 +407,7 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 - ✅ **Modern Vue 3 frontend** - Composition API, Pinia, Vue Router, Tailwind CSS
 - ✅ **Modular plugin system** - Install/manage modules without core modifications
 - ✅ **TMDB metadata module** - Poster, backdrop, synopsis, year, runtime, genres and rating imported from themoviedb.org when adding movies and series
+- ✅ **Library Scanner module** - Index local VPS folders into movies/series by filename (`Matrix.1999.mkv`, `Show.S01E02.mkv`), with optional TMDB enrichment and automatic rescans
 - ✅ **Real-time dashboard** - Live metrics and charts (30 s polling)
 - ✅ **No server restrictions** - Run on any compatible Linux server
 - ✅ **EPG importer** - Full XMLTV/JSON EPG support with merge capabilities
@@ -417,6 +424,13 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 
 Instala el módulo y configura tu API key en **Settings → Modules** (o con
 `--tmdb-api-key` al instalar). Guía completa: [docs/modules/TMDB.md](docs/modules/TMDB.md).
+
+### Library Scanner
+
+![Library Scanner](docs/_media/library-scanner.png)
+
+Indexa carpetas locales del VPS en el catálogo y las re-escanea periódicamente.
+Configuración y API en [docs/modules/LIBRARY.md](docs/modules/LIBRARY.md).
 
 ---
 

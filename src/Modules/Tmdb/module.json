@@ -1,0 +1,55 @@
+{
+  "id": "tmdb",
+  "name": "TMDB Metadata",
+  "version": "1.0.0",
+  "description": "Busca películas y series en The Movie Database (TMDB) y rellena póster, backdrop, sinopsis, año, duración, géneros y valoración.",
+  "author": "Fork Panel XC",
+  "license": "AGPL-3.0",
+  "permissions": [
+    {
+      "id": "tmdb.use",
+      "label": "Use TMDB metadata",
+      "description": "Search TMDB and import metadata into movies and series"
+    }
+  ],
+  "settings": {
+    "api_key": {
+      "type": "string",
+      "label": "TMDB API key",
+      "description": "v3 API key from themoviedb.org (Settings → API). Can also be set with TMDB_API_KEY in config/.env.",
+      "sensitive": true
+    },
+    "language": {
+      "type": "string",
+      "label": "Language",
+      "default": "es-ES",
+      "description": "TMDB language tag, e.g. es-ES, en-US, pt-BR"
+    }
+  },
+  "api_routes": [
+    {
+      "method": "GET",
+      "path": "/api/tmdb/search",
+      "handler": "ForkPanelXc\\Modules\\Tmdb\\Controllers\\TmdbController@search",
+      "middleware": ["auth", "permission:tmdb.use"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tmdb/details/{type}/{id}",
+      "handler": "ForkPanelXc\\Modules\\Tmdb\\Controllers\\TmdbController@details",
+      "middleware": ["auth", "permission:tmdb.use"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tmdb/settings",
+      "handler": "ForkPanelXc\\Modules\\Tmdb\\Controllers\\TmdbController@getSettings",
+      "middleware": ["auth"]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/tmdb/settings",
+      "handler": "ForkPanelXc\\Modules\\Tmdb\\Controllers\\TmdbController@saveSettings",
+      "middleware": ["auth"]
+    }
+  ]
+}

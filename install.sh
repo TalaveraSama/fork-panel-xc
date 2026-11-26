@@ -226,7 +226,8 @@ ok "User $APP_USER ready"
 log "Deploying application to $APP_DIR"
 mkdir -p \
   "$APP_DIR/src" "$APP_DIR/config" "$APP_DIR/frontend/public" \
-  "$APP_DIR/storage/logs" "$APP_DIR/storage/cache" "$APP_DIR/storage/sessions"
+  "$APP_DIR/storage/logs" "$APP_DIR/storage/cache" "$APP_DIR/storage/sessions" \
+  "$APP_DIR/media/movies" "$APP_DIR/media/series"
 
 cp -a "$SRC_DIR/src/." "$APP_DIR/src/"
 cp -a "$SRC_DIR/console.php" "$APP_DIR/console.php"
@@ -446,11 +447,13 @@ log "Applying database migrations"
   runuser -u "$APP_USER" -- php "$APP_DIR/console.php" db:migrate
 )
 
-log "Installing bundled TMDB module"
+log "Installing bundled modules"
 (
   cd "$APP_DIR"
-  runuser -u "$APP_USER" -- php "$APP_DIR/console.php" module:install tmdb || \
-    warn "TMDB module could not be installed automatically; install it from Modules."
+  for module in tmdb library; do
+    runuser -u "$APP_USER" -- php "$APP_DIR/console.php" module:install "$module" || \
+      warn "Module $module could not be installed automatically; install it from Modules."
+  done
 )
 
 if [ -n "$TMDB_KEY" ]; then

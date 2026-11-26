@@ -59,8 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example module included
   - **TMDB metadata module** (`tmdb`): search movies/series on themoviedb.org and
     import poster, backdrop, synopsis, year, runtime, genres and rating when
-    creating VOD entries. API key configurable in Settings → Modules or with
-    `TMDB_API_KEY`; responses cached 24 h. Requires `003_tmdb_metadata.sql`.
+    creating VOD entries. API key configurable in Settings → Streaming or
+    Settings → Modules, or with `TMDB_API_KEY`; responses cached 24 h. Requires
+    `003_tmdb_metadata.sql`.
+  - **Library Scanner module** (`library`): scans local folders, parses movie
+    and episode filenames, creates streams/series/episodes, tracks files in
+    `library_files`, marks removed files as missing, supports dry runs, CLI
+    (`library:scan`) and periodic scans. Optional TMDB enrichment. Requires
+    `004_library_index.sql`.
   - Dynamic module routes (`api_routes` in `module.json`) loaded only while the
     module is enabled
 

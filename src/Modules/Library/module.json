@@ -1,0 +1,68 @@
+{
+  "id": "library",
+  "name": "Library Scanner",
+  "version": "1.0.0",
+  "description": "Escanea carpetas locales del VPS, detecta películas y series por nombre de archivo y las indexa automáticamente en el catálogo. Enriquecimiento opcional con TMDB.",
+  "author": "Fork Panel XC",
+  "license": "AGPL-3.0",
+  "permissions": [
+    {
+      "id": "library.manage",
+      "label": "Manage library scanner",
+      "description": "Configure folders and run local media scans"
+    }
+  ],
+  "settings": {
+    "movie_paths": {
+      "type": "text",
+      "label": "Movie folders",
+      "description": "One absolute path per line. Defaults to <install>/media/movies when empty."
+    },
+    "series_paths": {
+      "type": "text",
+      "label": "Series folders",
+      "description": "One absolute path per line. Defaults to <install>/media/series when empty."
+    },
+    "scan_interval_minutes": {
+      "type": "integer",
+      "label": "Automatic scan interval (minutes)",
+      "default": 60
+    },
+    "enrich_tmdb": {
+      "type": "boolean",
+      "label": "Enrich with TMDB",
+      "default": true
+    },
+    "mark_missing": {
+      "type": "boolean",
+      "label": "Mark removed files as missing",
+      "default": true
+    }
+  },
+  "api_routes": [
+    {
+      "method": "GET",
+      "path": "/api/library/settings",
+      "handler": "ForkPanelXc\\Modules\\Library\\Controllers\\LibraryController@getSettings",
+      "middleware": ["auth"]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/library/settings",
+      "handler": "ForkPanelXc\\Modules\\Library\\Controllers\\LibraryController@saveSettings",
+      "middleware": ["auth"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/library/status",
+      "handler": "ForkPanelXc\\Modules\\Library\\Controllers\\LibraryController@status",
+      "middleware": ["auth"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/library/scan",
+      "handler": "ForkPanelXc\\Modules\\Library\\Controllers\\LibraryController@scan",
+      "middleware": ["auth"]
+    }
+  ]
+}

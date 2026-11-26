@@ -110,7 +110,7 @@ FLUSH PRIVILEGES;
 
 def deploy_files():
     say('▶ Deploying application files')
-    for sub in ('src', 'config', 'storage/logs', 'storage/cache', 'storage/sessions'):
+    for sub in ('src', 'config', 'storage/logs', 'storage/cache', 'storage/sessions', 'media/movies', 'media/series'):
         (BASE / sub).mkdir(parents=True, exist_ok=True)
 
     for item in ('Api', 'Core', 'Domain', 'Public', 'Modules', 'routes'):
@@ -310,11 +310,12 @@ def migrate():
 
 
 def install_tmdb_module():
-    say('▶ Installing TMDB module')
-    subprocess.run(
-        f'cd {BASE} && sudo -u fork_panel_xc /usr/bin/php {BASE}/console.php module:install tmdb',
-        shell=True, check=False
-    )
+    say('▶ Installing bundled modules')
+    for module in ('tmdb', 'library'):
+        subprocess.run(
+            f'cd {BASE} && sudo -u fork_panel_xc /usr/bin/php {BASE}/console.php module:install {module}',
+            shell=True, check=False
+        )
 
 
 def main():

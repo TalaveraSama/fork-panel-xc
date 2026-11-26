@@ -58,6 +58,7 @@ switch ($command) {
         echo "  module:disable <id>  Disable a module\n";
         echo "  module:uninstall <id> Uninstall a module\n";
         echo "  user:password <user> <pass>  Reset a panel user's password\n";
+        echo "  library:scan [--dry-run] [--limit=N]  Index local media folders\n";
         echo "  schedule:run         Run scheduled maintenance once\n";
         echo "  schedule:daemon      Run scheduled maintenance every minute\n";
         echo "  queue:daemon         Process background jobs continuously\n";
@@ -157,6 +158,32 @@ switch ($command) {
         echo "Password updated for '{$username}'.\n";
         exit(0);
 
+    case 'library:scan':
+        if (!class_exists(\ForkPanelXc\Modules\Library\LibraryScanner::class)) {
+            fwrite(STDERR, "Library module is not installed.\n");
+            exit(1);
+        }
+
+        if (!\ForkPanelXc\Modules\Library\LibraryScanner::moduleEnabled()) {
+            fwrite(STDERR, "Library module is disabled.\n");
+            exit(1);
+        }
+
+        $options = [
+            'dry_run' => in_array('--dry-run', $args, true),
+            'limit' => 0,
+        ];
+
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--limit=')) {
+                $options['limit'] = max(0, (int) substr($arg, 8));
+            }
+        }
+
+        $report = (new \ForkPanelXc\Modules\Library\LibraryScanner())->scan($options);
+        echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+        exit(isset($report['errors']) && count($report['errors']) > 0 && $report['movies_added'] + $report['episodes_added'] === 0 ? 1 : 0);
+
     case 'schedule:run':
         $run = static function (): void {
             Db::execute('DELETE FROM password_resets WHERE expires_at < ?', [time()]);
@@ -170,6 +197,10 @@ switch ($command) {
             );
 
             Db::execute('DELETE FROM stats_hourly WHERE created_at < ?', [time() - 7 * 86400]);
+
+            if (class_exists(\ForkPanelXc\Modules\Library\LibraryScanner::class)) {
+                \ForkPanelXc\Modules\Library\LibraryScanner::runIfDue();
+            }
         };
 
         $run();
@@ -188,6 +219,10 @@ switch ($command) {
                     'INSERT INTO stats_hourly (hour_label, inbound, outbound, connections, created_at) VALUES (?, ?, ?, ?, ?)',
                     [date('H:i'), $bandwidth, $bandwidth, $connections, time()]
                 );
+
+                if (class_exists(\ForkPanelXc\Modules\Library\LibraryScanner::class)) {
+                    \ForkPanelXc\Modules\Library\LibraryScanner::runIfDue();
+                }
             } catch (\Throwable $e) {
                 error_log('[fork-panel-xc] scheduler: ' . $e->getMessage());
             }
