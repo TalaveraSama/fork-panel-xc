@@ -65,6 +65,12 @@ export const streamsService = {
     return data
   },
 
+  // Admin test-player URL
+  async preview(id) {
+    const { data } = await api.post(`/streams/${id}/preview`)
+    return data.data || data
+  },
+
   // Run a source monitor check now
   async monitor(id) {
     const { data } = await api.post(`/streams/${id}/monitor`)

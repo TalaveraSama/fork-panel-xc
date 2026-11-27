@@ -13,10 +13,10 @@ final class ProxyToken
 {
     private const TTL = 43200;
 
-    public static function issue(array $payload): string
+    public static function issue(array $payload, int $ttl = self::TTL): string
     {
         $secret = (string) Env::get('STREAM_TOKEN_SECRET', 'change-me');
-        $payload['exp'] = time() + self::TTL;
+        $payload['exp'] = time() + $ttl;
 
         $encoded = self::base64Url(json_encode($payload) ?: '{}');
         $signature = self::base64Url(hash_hmac('sha256', $encoded, $secret, true));
@@ -46,7 +46,7 @@ final class ProxyToken
             return null;
         }
 
-        if (empty($payload['u']) || empty($payload['l']) || empty($payload['s'])) {
+        if (empty($payload['u']) || !isset($payload['l']) || !isset($payload['s'])) {
             return null;
         }
 

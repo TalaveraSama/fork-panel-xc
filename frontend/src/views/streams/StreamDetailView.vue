@@ -227,6 +227,10 @@ onMounted(fetchStream)
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <router-link :to="{ name: 'stream-player', params: { id: stream.id } }" class="btn-primary">
+          <PlayIcon class="w-4 h-4" />
+          Play
+        </router-link>
         <button class="btn-secondary" :disabled="testing" @click="runTest">
           <PlayIcon class="w-4 h-4" />
           {{ testing ? 'Testing…' : 'Test stream' }}

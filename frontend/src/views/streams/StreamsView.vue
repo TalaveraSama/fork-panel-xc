@@ -356,6 +356,13 @@ onUnmounted(() => {
         <template #cell-actions="{ row }">
           <div class="flex items-center gap-1">
             <router-link
+              :to="{ name: 'stream-player', params: { id: row.id } }"
+              class="p-1.5 rounded-lg text-green-600 hover:text-green-800 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              title="Play / test"
+            >
+              <PlayIcon class="w-4 h-4" />
+            </router-link>
+            <router-link
               :to="{ name: 'stream-edit', params: { id: row.id } }"
               class="p-1.5 rounded-lg text-dark-500 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
               title="Edit"

@@ -65,6 +65,7 @@ $router->group('/api', function (Router $router): void {
         $router->get('/{id}/sessions', [StreamsController::class, 'sessions']);
         $router->delete('/{id}/sessions/{sessionId}', [StreamsController::class, 'kickSession'], ['permission:streams.edit']);
         $router->post('/{id}/monitor', [StreamsController::class, 'monitor'], ['permission:streams.edit']);
+        $router->post('/{id}/preview', [XtreamCompatController::class, 'preview'], ['permission:streams.view']);
         $router->post('/{id}/restart', [StreamsController::class, 'restart'], ['permission:streams.edit']);
         $router->post('/{id}/test', [StreamsController::class, 'test']);
     });

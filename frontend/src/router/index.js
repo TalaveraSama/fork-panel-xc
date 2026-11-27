@@ -18,6 +18,7 @@ import StreamsView from '@views/streams/StreamsView.vue'
 import StreamDetailView from '@views/streams/StreamDetailView.vue'
 import StreamCreateView from '@views/streams/StreamCreateView.vue'
 import StreamEditView from '@views/streams/StreamEditView.vue'
+import StreamPlayerView from '@views/streams/StreamPlayerView.vue'
 
 // Movies/VOD
 import MoviesView from '@views/vod/MoviesView.vue'
@@ -104,6 +105,7 @@ const routes = [
         children: [
           { path: '', name: 'streams', component: StreamsView },
           { path: 'create', name: 'stream-create', component: StreamCreateView },
+          { path: ':id/player', name: 'stream-player', component: StreamPlayerView, props: true },
           { path: ':id', name: 'stream-detail', component: StreamDetailView, props: true },
           { path: ':id/edit', name: 'stream-edit', component: StreamEditView, props: true },
         ],

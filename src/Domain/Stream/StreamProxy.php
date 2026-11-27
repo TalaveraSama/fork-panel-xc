@@ -27,7 +27,8 @@ final class StreamProxy
         private string $host,
         private string $ip,
         private string $userAgent,
-        ?string $sessionKey = null
+        ?string $sessionKey = null,
+        private bool $preview = false
     ) {
         $this->sessionKey = $sessionKey ?: substr(sha1(implode('|', [
             (int) $line['id'],
@@ -373,6 +374,7 @@ final class StreamProxy
             'u' => $absolute,
             'k' => $kind,
             'sid' => $this->sessionKey,
+            'p' => $this->preview ? 1 : 0,
         ]);
 
         return $this->scheme . '://' . $this->host . '/stream/' . $token;

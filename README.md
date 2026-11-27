@@ -415,6 +415,7 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 - ✅ **VOD management** - Movies, Series (with categories), Episodes, with Range/seek support in the stream gateway
 - ✅ **Stream detail tabs** - Real stats, inline settings, per-stream audit logs (`stream_logs`) and source monitoring (interval, failure threshold, auto-restart, check now/restart, online/offline)
 - ✅ **Streams list health** - Green **Online** / red **Offline** badges from the monitor, **Check all**, with 30 s auto-refresh
+- ✅ **Built-in test player** - Play HLS streams/MP4 from the panel with a signed 15-minute admin preview URL (no line credentials in the browser)
 - ✅ **User/Reseller panel** - Complete subscription & access control, including line creation, expiration and password resets
 - ✅ **Security patches** - Hardened against common vulnerabilities
 - ✅ **Load balancing & clustering** - Multi-node support with fanout delivery

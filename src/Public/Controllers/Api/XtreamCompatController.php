@@ -257,21 +257,31 @@ class XtreamCompatController extends BaseApiController
             return ApiResponse::error('Not found', 404);
         }
 
-        $line = Db::first('SELECT * FROM user_lines WHERE id = ?', [(int) $payload['l']]);
+        $preview = !empty($payload['p']);
         $stream = Db::first('SELECT * FROM streams WHERE id = ?', [(int) $payload['s']]);
 
-        if ($line === null || !(bool) $line['enabled']) {
-            return ApiResponse::error('Not found', 404);
+        if ($preview) {
+            if ($stream === null) {
+                return ApiResponse::error('Not found', 404);
+            }
+
+            $line = ['id' => 0, 'username' => 'preview', 'enabled' => 1, 'exp_date' => null, 'max_connections' => 0];
+        } else {
+            $line = Db::first('SELECT * FROM user_lines WHERE id = ?', [(int) $payload['l']]);
+
+            if ($line === null || !(bool) $line['enabled']) {
+                return ApiResponse::error('Not found', 404);
+            }
+
+            // Series tokens reference a series id, not a streams row.
+            $stream ??= ['id' => (int) $payload['s']];
+
+            if ($line['exp_date'] !== null && $line['exp_date'] !== '' && (int) $line['exp_date'] <= time()) {
+                return ApiResponse::error('Not found', 404);
+            }
         }
 
-        // Series tokens reference a series id, not a streams row.
-        $stream ??= ['id' => (int) $payload['s']];
-
-        if ($line['exp_date'] !== null && $line['exp_date'] !== '' && (int) $line['exp_date'] <= time()) {
-            return ApiResponse::error('Not found', 404);
-        }
-
-        $proxy = $this->makeProxy($request, $line, $stream, (string) ($payload['sid'] ?? ''));
+        $proxy = $this->makeProxy($request, $line, $stream, (string) ($payload['sid'] ?? ''), $preview);
 
         if (!$proxy->canConnect()) {
             return ApiResponse::error('Connection limit reached', 429);
@@ -282,12 +292,51 @@ class XtreamCompatController extends BaseApiController
         }
 
         $durationHint = ($payload['k'] ?? '') === 'segment' ? 6 : 0;
+        $range = (string) $request->header('Range', '');
 
         return $proxy->serveMedia(
             (string) $payload['u'],
             $this->contentTypeFor((string) $payload['u']),
-            $durationHint
+            $durationHint,
+            $range !== '' ? $range : null,
+            $preview && $durationHint === 0
         );
+    }
+
+    /**
+     * Admin test-player URL: short-lived signed gateway URL without line auth.
+     */
+    public function preview(ApiRequest $request, string $id): ApiResponse
+    {
+        $stream = Db::first('SELECT * FROM streams WHERE id = ?', [(int) $id]);
+
+        if ($stream === null || empty($stream['stream_source'])) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        $source = (string) $stream['stream_source'];
+        $isHls = str_contains(strtolower((string) parse_url($source, PHP_URL_PATH)), '.m3u8');
+        $sid = 'preview-' . substr(sha1(implode('|', [
+            (int) $stream['id'],
+            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            (string) $request->header('User-Agent', ''),
+        ])), 0, 24);
+
+        $token = ProxyToken::issue([
+            'l' => 0,
+            's' => (int) $stream['id'],
+            'u' => $source,
+            'k' => $isHls ? 'playlist' : 'media',
+            'sid' => $sid,
+            'p' => 1,
+        ], 900);
+
+        return ApiResponse::json(['data' => [
+            'url' => $this->baseUrl($request) . '/stream/' . $token,
+            'type' => $isHls ? 'hls' : 'video',
+            'name' => $stream['stream_display_name'],
+            'stream_id' => (int) $stream['id'],
+        ]]);
     }
 
     private function proxyFor(
@@ -332,7 +381,7 @@ class XtreamCompatController extends BaseApiController
         };
     }
 
-    private function makeProxy(ApiRequest $request, array $line, array $stream, string $sessionKey = ''): StreamProxy
+    private function makeProxy(ApiRequest $request, array $line, array $stream, string $sessionKey = '', bool $preview = false): StreamProxy
     {
         return new StreamProxy(
             $line,
@@ -341,7 +390,8 @@ class XtreamCompatController extends BaseApiController
             (string) $request->header('Host', 'localhost'),
             (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
             (string) $request->header('User-Agent', ''),
-            $sessionKey !== '' ? $sessionKey : null
+            $sessionKey !== '' ? $sessionKey : null,
+            $preview
         );
     }
 

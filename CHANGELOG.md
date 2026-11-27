@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `009_stream_monitor_options.sql`)
   - Streams list shows green **Online** / red **Offline** (or **Disabled**)
     from monitor state, with 30 s auto-refresh and online/offline filters
+  - **Built-in test player**: HLS via hls.js and MP4 via native video, using a
+    signed 15-minute admin preview URL (`POST /streams/{id}/preview`) proxied by
+    the gateway. Play buttons in the stream list/detail.
   - Movies & Series management with TMDB integration
   - Users & Lines management
   - Resellers management
