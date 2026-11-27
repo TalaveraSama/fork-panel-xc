@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stream detail tabs: overview, real stats (viewers/connections/bandwidth +
     last source test), inline settings (source/type/category/EPG ID/enabled) and
     per-stream audit log (`stream_logs`)
+  - **Stream monitoring**: per-channel interval, `online/offline` source checks
+    from the scheduler, Check now / Restart actions and monitor state in Stats
+    (migration `008_stream_monitor.sql`)
   - Movies & Series management with TMDB integration
   - Users & Lines management
   - Resellers management

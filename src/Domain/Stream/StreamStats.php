@@ -30,8 +30,7 @@ final class StreamStats
                  FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 GROUP BY stream_id',
                 [$activeSince]
             );
-
-            Db::execute("UPDATE streams SET status = 'offline' WHERE status = 'online'");
+            $ids = array_map(static fn (array $row): int => (int) $row['stream_id'], $activeStreams);
 
             foreach ($activeStreams as $row) {
                 Db::execute('UPDATE streams SET status = ? WHERE id = ?', ['online', (int) $row['stream_id']]);
@@ -48,10 +47,21 @@ final class StreamStats
                 );
             }
 
+            // Monitor-enabled streams keep the status written by StreamMonitor;
+            // only unmonitored streams are forced offline when nobody watches.
+            if ($ids === []) {
+                Db::execute("UPDATE streams SET status = 'offline' WHERE monitor_enabled = 0");
+            } else {
+                Db::execute(
+                    "UPDATE streams SET status = 'offline'
+                     WHERE monitor_enabled = 0 AND id NOT IN (" . implode(',', array_fill(0, count($ids), '?')) . ')',
+                    $ids
+                );
+            }
+
             if ($activeStreams === []) {
                 Db::execute('UPDATE stream_stats SET current_viewers = 0, total_connections = 0, bandwidth = 0');
             } else {
-                $ids = array_map(static fn (array $row): int => (int) $row['stream_id'], $activeStreams);
                 Db::execute(
                     'UPDATE stream_stats SET current_viewers = 0, total_connections = 0, bandwidth = 0
                      WHERE stream_id NOT IN (' . implode(',', array_fill(0, count($ids), '?')) . ')',

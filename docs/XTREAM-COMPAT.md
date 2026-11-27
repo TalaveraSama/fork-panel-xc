@@ -79,6 +79,26 @@ de esos valores.
 - Si una línea cambia de canal, la sesión anterior puede tardar hasta 45 s en
   liberar el cupo; para zapping agresivo conviene `max_connections >= 2`.
 
+## Monitoreo de fuentes
+
+El scheduler (`schedule:daemon`) ejecuta `StreamMonitor::runDue()` cada minuto.
+Cada canal con `monitor_enabled = 1` se comprueba cuando vence su intervalo
+(`monitor_interval`, 30–3600 s):
+
+- actualiza `streams.status` (`online`/`offline`),
+- guarda `monitor_last_check`, `monitor_last_status`, `monitor_last_error`,
+- escribe en `stream_logs` solo cuando cambia el estado o el error,
+- `GET /api/streams/{id}/stats` expone el estado y el próximo chequeo.
+
+En **Streams → canal → Stats** tienes:
+
+- **Check now**: comprueba la fuente inmediatamente.
+- **Restart**: expulsa las sesiones activas y vuelve a comprobar la fuente.
+- **Source monitoring**: enabled, intervalo, último chequeo y próximo chequeo.
+
+Los canales monitorizados mantienen su estado `online` aunque no tengan viewers;
+los no monitorizados pasan a `offline` cuando no hay sesiones.
+
 ## Limitaciones actuales
 
 - No hay transcodificación ni empaquetado propio: se reenvían los bytes de la

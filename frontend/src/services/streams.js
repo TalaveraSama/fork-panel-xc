@@ -65,6 +65,18 @@ export const streamsService = {
     return data
   },
 
+  // Run a source monitor check now
+  async monitor(id) {
+    const { data } = await api.post(`/streams/${id}/monitor`)
+    return data
+  },
+
+  // Restart stream (drop sessions + check source)
+  async restart(id) {
+    const { data } = await api.post(`/streams/${id}/restart`)
+    return data
+  },
+
   // Kick one viewer session
   async kickSession(id, sessionId) {
     const { data } = await api.delete(`/streams/${id}/sessions/${sessionId}`)

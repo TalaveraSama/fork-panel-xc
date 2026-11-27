@@ -103,7 +103,21 @@ class StreamsController extends BaseApiController
         }
 
         $data = $request->json();
-        $allowed = ['stream_display_name', 'stream_source', 'stream_icon', 'stream_type', 'category_id', 'epg_channel_id', 'enabled', 'status'];
+        $allowed = [
+            'stream_display_name', 'stream_source', 'stream_icon', 'stream_type',
+            'category_id', 'epg_channel_id', 'enabled', 'status',
+            'monitor_enabled', 'monitor_interval',
+        ];
+
+        if (array_key_exists('monitor_interval', $data)) {
+            $interval = (int) $data['monitor_interval'];
+
+            if ($interval < 30 || $interval > 3600) {
+                return ApiResponse::error('Monitor interval must be between 30 and 3600 seconds', 422);
+            }
+
+            $data['monitor_interval'] = $interval;
+        }
 
         $updates = array_intersect_key($data, array_flip($allowed));
 
@@ -122,6 +136,8 @@ class StreamsController extends BaseApiController
             'fields' => array_keys($updates),
             'name' => $updates['stream_display_name'] ?? null,
         ]);
+
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
 
         return ApiResponse::json(['data' => $this->find($streamId)]);
     }
@@ -194,6 +210,36 @@ class StreamsController extends BaseApiController
         return ApiResponse::json(['data' => Db::select('SELECT id, category_name AS name, category_type AS type FROM categories ORDER BY category_name')]);
     }
 
+    public function monitor(ApiRequest $request, string $id): ApiResponse
+    {
+        $streamId = (int) $id;
+
+        if ($this->find($streamId) === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        $result = \ForkPanelXc\Domain\Stream\StreamMonitor::checkNow($streamId);
+
+        return ApiResponse::json(['data' => $result]);
+    }
+
+    public function restart(ApiRequest $request, string $id): ApiResponse
+    {
+        $streamId = (int) $id;
+
+        if ($this->find($streamId) === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        Db::execute('DELETE FROM stream_sessions WHERE stream_id = ?', [$streamId]);
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+        $this->logEvent($streamId, 'info', 'Stream restarted', ['reason' => 'manual restart']);
+
+        $result = \ForkPanelXc\Domain\Stream\StreamMonitor::checkNow($streamId);
+
+        return ApiResponse::json(['data' => $result]);
+    }
+
     public function stats(ApiRequest $request, string $id): ApiResponse
     {
         \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
@@ -224,6 +270,14 @@ class StreamsController extends BaseApiController
             'enabled' => (bool) $stream['enabled'],
             'created_at' => (int) $stream['created_at'],
             'updated_at' => (int) $stream['updated_at'],
+            'monitor_enabled' => (bool) ($stream['monitor_enabled'] ?? true),
+            'monitor_interval' => (int) ($stream['monitor_interval'] ?? 60),
+            'monitor_last_check' => $stream['monitor_last_check'] !== null ? (int) $stream['monitor_last_check'] : null,
+            'monitor_last_status' => $stream['monitor_last_status'] !== null ? (int) $stream['monitor_last_status'] : null,
+            'monitor_last_error' => $stream['monitor_last_error'] ?? null,
+            'next_check' => $stream['monitor_last_check'] !== null
+                ? (int) $stream['monitor_last_check'] + (int) ($stream['monitor_interval'] ?? 60)
+                : null,
             'last_test' => $lastTest === null ? null : [
                 'level' => $lastTest['level'],
                 'message' => $lastTest['message'],
@@ -353,6 +407,18 @@ class StreamsController extends BaseApiController
             'error' => $error !== '' ? $error : ($code >= 400 ? 'HTTP ' . $code : null),
             'info' => ['http_code' => $code, 'content_type' => $contentType],
         ];
+
+        Db::execute(
+            'UPDATE streams SET status = ?, monitor_last_check = ?, monitor_last_status = ?, monitor_last_error = ?, updated_at = ? WHERE id = ?',
+            [
+                $result['success'] ? 'online' : 'offline',
+                time(),
+                $result['success'] ? 1 : 0,
+                $result['error'] !== null ? mb_substr((string) $result['error'], 0, 500) : null,
+                time(),
+                (int) $id,
+            ]
+        );
 
         $this->logEvent(
             (int) $id,

@@ -61,6 +61,7 @@ switch ($command) {
         echo "  library:scan [--dry-run] [--limit=N]  Index local media folders\n";
         echo "  schedule:run         Run scheduled maintenance once\n";
         echo "  schedule:daemon      Run scheduled maintenance every minute\n";
+        echo "  streams:monitor      Probe due stream sources now\n";
         echo "  queue:daemon         Process background jobs continuously\n";
         echo "  serve [port]         Start the PHP development server\n";
         exit(0);
@@ -184,6 +185,11 @@ switch ($command) {
         echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
         exit(isset($report['errors']) && count($report['errors']) > 0 && $report['movies_added'] + $report['episodes_added'] === 0 ? 1 : 0);
 
+    case 'streams:monitor':
+        $result = \ForkPanelXc\Domain\Stream\StreamMonitor::runDue((int) ($args[0] ?? 25));
+        echo json_encode($result, JSON_PRETTY_PRINT) . "\n";
+        exit(0);
+
     case 'schedule:run':
         $run = static function (): void {
             Db::execute('DELETE FROM password_resets WHERE expires_at < ?', [time()]);
@@ -201,6 +207,9 @@ switch ($command) {
             if (class_exists(\ForkPanelXc\Modules\Library\LibraryScanner::class)) {
                 \ForkPanelXc\Modules\Library\LibraryScanner::runIfDue();
             }
+
+            \ForkPanelXc\Domain\Stream\StreamMonitor::runDue();
+            \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
         };
 
         $run();
@@ -223,6 +232,9 @@ switch ($command) {
                 if (class_exists(\ForkPanelXc\Modules\Library\LibraryScanner::class)) {
                     \ForkPanelXc\Modules\Library\LibraryScanner::runIfDue();
                 }
+
+                \ForkPanelXc\Domain\Stream\StreamMonitor::runDue();
+                \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
             } catch (\Throwable $e) {
                 error_log('[fork-panel-xc] scheduler: ' . $e->getMessage());
             }

@@ -20,6 +20,8 @@ const logsLoading = ref(false)
 const sessionsLoading = ref(false)
 const savingSettings = ref(false)
 const testing = ref(false)
+const checking = ref(false)
+const restarting = ref(false)
 const testResult = ref(null)
 const activeTab = ref('overview')
 
@@ -31,6 +33,8 @@ const settings = reactive({
   category_id: '',
   epg_channel_id: '',
   enabled: true,
+  monitor_enabled: true,
+  monitor_interval: 60,
 })
 
 function applyStream(data) {
@@ -43,6 +47,8 @@ function applyStream(data) {
     category_id: data.category_id || '',
     epg_channel_id: data.epg_channel_id || '',
     enabled: !!data.enabled,
+    monitor_enabled: data.monitor_enabled !== undefined ? !!data.monitor_enabled : true,
+    monitor_interval: data.monitor_interval || 60,
   })
 }
 
@@ -122,6 +128,8 @@ async function saveSettings() {
       category_id: settings.category_id || null,
       epg_channel_id: settings.epg_channel_id,
       enabled: settings.enabled,
+      monitor_enabled: settings.monitor_enabled,
+      monitor_interval: settings.monitor_interval,
     })
     applyStream(response.data || response)
     uiStore.toastSuccess('Stream settings saved')
@@ -145,6 +153,35 @@ async function runTest() {
     uiStore.toastError(error.response?.data?.error || 'Stream test failed')
   } finally {
     testing.value = false
+  }
+}
+
+async function checkMonitor() {
+  checking.value = true
+  try {
+    const response = await streamsService.monitor(route.params.id)
+    const result = response.data || response
+    uiStore.toastSuccess(result.online ? 'Source online' : 'Source offline')
+    await Promise.all([loadStats(), loadLogs()])
+  } catch (error) {
+    uiStore.toastError(error.response?.data?.error || 'Monitor check failed')
+  } finally {
+    checking.value = false
+  }
+}
+
+async function restartStream() {
+  if (!window.confirm('Restart this stream? Active viewers will be disconnected.')) return
+
+  restarting.value = true
+  try {
+    await streamsService.restart(route.params.id)
+    uiStore.toastSuccess('Stream restarted')
+    await Promise.all([loadStats(), loadLogs(), loadSessions()])
+  } catch (error) {
+    uiStore.toastError(error.response?.data?.error || 'Failed to restart stream')
+  } finally {
+    restarting.value = false
   }
 }
 
@@ -308,6 +345,27 @@ onMounted(fetchStream)
           </div>
 
           <div class="rounded-lg border border-dark-200 dark:border-dark-700 p-4 text-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <p class="font-medium text-dark-900 dark:text-white">Source monitoring</p>
+              <div class="flex gap-2">
+                <button class="btn-secondary btn-sm" :disabled="checking" @click="checkMonitor">
+                  {{ checking ? 'Checking…' : 'Check now' }}
+                </button>
+                <button class="btn-secondary btn-sm" :disabled="restarting" @click="restartStream">
+                  {{ restarting ? 'Restarting…' : 'Restart' }}
+                </button>
+              </div>
+            </div>
+            <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Monitoring</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_enabled ? 'Enabled' : 'Disabled' }}</dd></div>
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Interval</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_interval || 60 }} s</dd></div>
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Last check</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_last_check ? formatDateTime(stats.monitor_last_check) : 'Never' }}</dd></div>
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Next check</dt><dd class="text-dark-900 dark:text-white">{{ stats?.next_check ? formatDateTime(stats.next_check) : '—' }}</dd></div>
+            </dl>
+            <p v-if="stats?.monitor_last_error" class="mt-2 text-red-600 dark:text-red-400">Last error: {{ stats.monitor_last_error }}</p>
+          </div>
+
+          <div class="rounded-lg border border-dark-200 dark:border-dark-700 p-4 text-sm">
             <div class="flex items-center justify-between mb-3">
               <p class="font-medium text-dark-900 dark:text-white">Active connections</p>
               <button class="btn-secondary btn-sm" :disabled="sessionsLoading" @click="loadSessions">
@@ -396,6 +454,26 @@ onMounted(fetchStream)
                 <input v-model="settings.enabled" type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600 focus:ring-primary-500" />
                 Enabled
               </label>
+            </div>
+
+            <div class="rounded-lg border border-dark-200 dark:border-dark-700 p-4">
+              <p class="font-medium text-dark-900 dark:text-white mb-3">Source monitoring</p>
+              <div class="grid sm:grid-cols-2 gap-4">
+                <label class="flex items-center gap-2 text-sm text-dark-700 dark:text-dark-300">
+                  <input v-model="settings.monitor_enabled" type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600 focus:ring-primary-500" />
+                  Monitor source health
+                </label>
+                <div>
+                  <label class="label" for="s_monitor_interval">Check every</label>
+                  <select id="s_monitor_interval" v-model.number="settings.monitor_interval" class="input">
+                    <option :value="30">30 seconds</option>
+                    <option :value="60">1 minute</option>
+                    <option :value="300">5 minutes</option>
+                    <option :value="900">15 minutes</option>
+                    <option :value="3600">1 hour</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-dark-200 dark:border-dark-700 pt-4">
