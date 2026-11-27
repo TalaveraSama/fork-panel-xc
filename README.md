@@ -412,7 +412,7 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 - ✅ **No server restrictions** - Run on any compatible Linux server
 - ✅ **EPG importer** - Full XMLTV/JSON EPG support with merge capabilities
 - ✅ **VOD management** - Movies, Series, Episodes
-- ✅ **User/Reseller panel** - Complete subscription & access control
+- ✅ **User/Reseller panel** - Complete subscription & access control, including line creation, expiration and password resets
 - ✅ **Security patches** - Hardened against common vulnerabilities
 - ✅ **Load balancing & clustering** - Multi-node support with fanout delivery
 - ✅ **Transcoding** - FFmpeg-based adaptive bitrate streaming

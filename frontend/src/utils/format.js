@@ -43,6 +43,15 @@ export function formatDateTime(timestamp) {
   })
 }
 
+/**
+ * Date-only expiry (the API stores the end of the selected day in UTC).
+ * Formatting in UTC avoids an off-by-one day for negative time zones.
+ */
+export function formatExpiryDate(timestamp) {
+  if (!timestamp) return 'Never'
+  return new Date(timestamp * 1000).toISOString().slice(0, 10)
+}
+
 export function formatRelativeTime(timestamp) {
   if (!timestamp) return ''
   const date = new Date(timestamp * 1000)

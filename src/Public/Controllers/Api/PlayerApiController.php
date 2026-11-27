@@ -227,6 +227,12 @@ class PlayerApiController extends BaseApiController
             return null;
         }
 
+        $expDate = $line['exp_date'] ?? null;
+
+        if ($expDate !== null && $expDate !== '' && (int) $expDate <= time()) {
+            return null;
+        }
+
         return $line;
     }
 }

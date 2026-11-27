@@ -33,6 +33,8 @@ import UserDetailView from '@views/users/UserDetailView.vue'
 import UserCreateView from '@views/users/UserCreateView.vue'
 import LinesView from '@views/users/LinesView.vue'
 import LineDetailView from '@views/users/LineDetailView.vue'
+import LineCreateView from '@views/users/LineCreateView.vue'
+import LineEditView from '@views/users/LineEditView.vue'
 
 // Resellers
 import ResellersView from '@views/resellers/ResellersView.vue'
@@ -138,7 +140,9 @@ const routes = [
         path: 'lines',
         children: [
           { path: '', name: 'lines', component: LinesView },
+          { path: 'create', name: 'line-create', component: LineCreateView },
           { path: ':id', name: 'line-detail', component: LineDetailView, props: true },
+          { path: ':id/edit', name: 'line-edit', component: LineEditView, props: true },
         ],
       },
 

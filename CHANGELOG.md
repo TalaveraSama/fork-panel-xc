@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Role-based access control (Admin, Reseller, User)
   - Permission system with granular controls
   - Two-factor authentication support
+  - **Line (subscription) management**: create/edit/delete lines, owner user,
+    expiration date, connection limit, password reset and expiry enforcement on
+    player login
 - **Streaming Endpoints**
   - Live streaming (/live/{token})
   - VOD streaming (/movie/{token})

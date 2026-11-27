@@ -98,7 +98,11 @@ $router->group('/api', function (Router $router): void {
 
     $router->group('/lines', function (Router $router): void {
         $router->get('', [UsersController::class, 'linesIndex']);
+        $router->post('', [UsersController::class, 'lineStore'], ['permission:lines.create']);
         $router->get('/{id}', [UsersController::class, 'lineShow']);
+        $router->put('/{id}', [UsersController::class, 'lineUpdate'], ['permission:lines.edit']);
+        $router->delete('/{id}', [UsersController::class, 'lineDestroy'], ['permission:lines.delete']);
+        $router->post('/{id}/reset-password', [UsersController::class, 'lineResetPassword'], ['permission:lines.edit']);
     });
 
     $router->group('/resellers', function (Router $router): void {

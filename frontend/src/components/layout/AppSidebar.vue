@@ -34,6 +34,7 @@ const navigation = [
       { label: 'Users', to: { name: 'users' }, permissions: ['users.view'] },
       { label: 'Lines', to: { name: 'lines' }, permissions: ['lines.view'] },
       { label: 'Create User', to: { name: 'user-create' }, permissions: ['users.create'] },
+      { label: 'Create Line', to: { name: 'line-create' }, permissions: ['lines.create'] },
     ],
   },
   {
