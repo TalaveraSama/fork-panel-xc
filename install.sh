@@ -346,6 +346,13 @@ server {
         fastcgi_read_timeout 300s;
     }
 
+    # Shared HLS segment cache served directly by nginx (X-Accel-Redirect)
+    location /internal-stream-cache/ {
+        internal;
+        alias ${APP_DIR}/storage/stream_cache/;
+        add_header Accept-Ranges bytes;
+    }
+
     location ~ ^/(live|movie|series|epg|stream)/ {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;

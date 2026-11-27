@@ -124,6 +124,124 @@ final class StreamProxy
     }
 
     /**
+     * Shared on-disk segment cache: the first viewer of a segment pulls it from
+     * the origin, everyone else is served the same file by nginx through
+     * X-Accel-Redirect. PHP no longer carries the segment bytes.
+     */
+    public function serveCachedSegment(string $url, string $contentType): ApiResponse
+    {
+        $path = $this->cachePath($url);
+
+        if (!is_file($path) || (time() - (int) filemtime($path)) > 600) {
+            $this->fetchSegmentToCache($url, $path, $contentType);
+        }
+
+        if (!is_file($path) || filesize($path) === 0) {
+            return ApiResponse::error('Source segment unavailable', 502);
+        }
+
+        $size = (int) filesize($path);
+        $this->touchSession($size, (int) round(($size * 8) / 6 / 1000));
+
+        return ApiResponse::xAccel(
+            '/internal-stream-cache/' . (int) $this->stream['id'] . '/' . basename($path),
+            $contentType,
+            $size
+        );
+    }
+
+    private function cachePath(string $url): string
+    {
+        $root = dirname(__DIR__, 3) . '/storage/stream_cache/' . (int) $this->stream['id'];
+
+        if (!is_dir($root) && !@mkdir($root, 0775, true) && !is_dir($root)) {
+            throw new \RuntimeException('Cannot create stream cache directory');
+        }
+
+        $extension = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'bin';
+
+        return $root . '/' . sha1($url) . '.' . preg_replace('/[^a-z0-9]/', '', $extension);
+    }
+
+    private function fetchSegmentToCache(string $url, string $path, string $contentType): void
+    {
+        $lock = @fopen($path . '.lock', 'c');
+
+        if ($lock === false) {
+            return;
+        }
+
+        try {
+            if (!flock($lock, LOCK_EX)) {
+                return;
+            }
+
+            if (is_file($path) && (time() - (int) filemtime($path)) <= 600) {
+                return;
+            }
+
+            $temp = $path . '.tmp.' . getmypid();
+            $handle = fopen($temp, 'wb');
+
+            if ($handle === false) {
+                return;
+            }
+
+            $status = 0;
+            $curl = curl_init($url);
+            curl_setopt_array($curl, [
+                CURLOPT_FILE => $handle,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_CONNECTTIMEOUT => 6,
+                CURLOPT_TIMEOUT => 20,
+                CURLOPT_USERAGENT => $this->userAgent ?: 'ForkPanelXC/1.0',
+                CURLOPT_HTTPHEADER => ['Accept: */*'],
+                CURLOPT_HEADERFUNCTION => function ($curl, string $line) use (&$status): int {
+                    if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $match)) {
+                        $status = (int) $match[1];
+                    }
+
+                    return strlen($line);
+                },
+            ]);
+
+            curl_exec($curl);
+            $error = curl_error($curl);
+            curl_close($curl);
+            fclose($handle);
+
+            if ($status >= 200 && $status < 300 && $error === '' && filesize($temp) > 0) {
+                @rename($temp, $path);
+                $this->pruneCache(dirname($path));
+            } else {
+                @unlink($temp);
+            }
+        } finally {
+            @flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function pruneCache(string $directory): void
+    {
+        foreach (glob($directory . '/*') ?: [] as $file) {
+            $age = time() - (int) filemtime($file);
+
+            if (str_ends_with($file, '.lock')) {
+                if ($age > 900) {
+                    @unlink($file);
+                }
+
+                continue;
+            }
+
+            if ($age > 900 && is_file($file)) {
+                @unlink($file);
+            }
+        }
+    }
+
+    /**
      * Enforce user_lines.max_connections for new sessions. Existing sessions
      * (playlist/segment refreshes) are always allowed.
      */

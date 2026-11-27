@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Admin preview sessions (`line_id = 0`) are excluded from viewers,
     connections and bandwidth, so testing in the panel does not duplicate the
     real subscriber count.
+  - **Shared HLS segment cache**: first viewer pulls each segment; nginx serves
+    it to all viewers through `X-Accel-Redirect` (internal
+    `/internal-stream-cache/`), so PHP-FPM no longer carries segment bytes and
+    the origin is fetched once per segment.
   - Movies & Series management with TMDB integration
   - Users & Lines management
   - Resellers management

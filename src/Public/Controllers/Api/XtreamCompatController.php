@@ -291,6 +291,13 @@ class XtreamCompatController extends BaseApiController
             return $proxy->servePlaylist((string) $payload['u']);
         }
 
+        if (($payload['k'] ?? '') === 'segment') {
+            return $proxy->serveCachedSegment(
+                (string) $payload['u'],
+                $this->contentTypeFor((string) $payload['u'])
+            );
+        }
+
         $durationHint = ($payload['k'] ?? '') === 'segment' ? 6 : 0;
         $range = (string) $request->header('Range', '');
 

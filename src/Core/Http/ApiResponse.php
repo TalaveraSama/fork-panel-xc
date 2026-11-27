@@ -58,6 +58,24 @@ class ApiResponse
     }
 
     /**
+     * Let nginx serve an internal file (X-Accel-Redirect) instead of PHP.
+     */
+    public static function xAccel(string $internalPath, string $contentType, int $length = 0): self
+    {
+        $headers = [
+            'X-Accel-Redirect' => $internalPath,
+            'Content-Type' => $contentType,
+            'Accept-Ranges' => 'bytes',
+        ];
+
+        if ($length > 0) {
+            $headers['Content-Length'] = (string) $length;
+        }
+
+        return new self(200, $headers);
+    }
+
+    /**
      * Stream a binary response without buffering it in memory.
      */
     public static function stream(callable $streamer, array $headers = [], int $status = 200): self

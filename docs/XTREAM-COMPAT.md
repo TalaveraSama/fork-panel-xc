@@ -25,6 +25,20 @@ Las películas y episodios admiten **HTTP Range** (`206 Partial Content`),
 Las series usan `series.category_id` y aparecen en `get_series_categories` /
 `get_series` con su categoría.
 
+## Caché HLS compartida
+
+Los segmentos HLS se cachean en `storage/stream_cache/<stream_id>/`:
+
+- el primer viewer descarga el segmento del origen,
+- los siguientes leen el mismo archivo (cache hit),
+- nginx entrega el archivo con `X-Accel-Redirect` desde
+  `/internal-stream-cache/` (location `internal`), no PHP-FPM,
+- se limpian segmentos con más de 15 min.
+
+Así se evita descargar el mismo segmento N veces del origen y PHP deja de
+transportar los bytes de vídeo. El ancho de banda de salida sigue siendo por
+viewer.
+
 La respuesta de login incluye `user_info` (auth, status, exp_date,
 max_connections, allowed_output_formats) y `server_info` (url, port,
 server_protocol).

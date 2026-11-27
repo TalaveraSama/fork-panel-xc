@@ -416,6 +416,7 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 - ✅ **Stream detail tabs** - Real stats, inline settings, per-stream audit logs (`stream_logs`) and source monitoring (interval, failure threshold, auto-restart, check now/restart, online/offline)
 - ✅ **Streams list health** - Green **Online** / red **Offline** badges from the monitor, **Check all**, with 30 s auto-refresh
 - ✅ **Built-in test player** - Play HLS streams/MP4 from the panel with a signed 15-minute admin preview URL (no line credentials in the browser)
+- ✅ **Shared HLS cache** - One origin fetch per segment; nginx serves the cached segment to every viewer via X-Accel-Redirect (PHP no longer carries segment bytes)
 - ✅ **User/Reseller panel** - Complete subscription & access control, including line creation, expiration and password resets
 - ✅ **Security patches** - Hardened against common vulnerabilities
 - ✅ **Load balancing & clustering** - Multi-node support with fanout delivery
