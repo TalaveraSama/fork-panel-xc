@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Built-in test player**: HLS via hls.js and MP4 via native video, using a
     signed 15-minute admin preview URL (`POST /streams/{id}/preview`) proxied by
     the gateway. Play buttons in the stream list/detail.
+  - Admin preview sessions (`line_id = 0`) are excluded from viewers,
+    connections and bandwidth, so testing in the panel does not duplicate the
+    real subscriber count.
   - Movies & Series management with TMDB integration
   - Users & Lines management
   - Resellers management

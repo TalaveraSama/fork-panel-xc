@@ -72,7 +72,8 @@ activas en los últimos 45 s se calculan:
 - `streams.status` = `online`/`offline`
 
 Las estadísticas del dashboard y de la pestaña **Stats** del canal se alimentan
-de esos valores.
+de esos valores. Las sesiones del **player de prueba** del panel (`line_id = 0`)
+no cuentan como viewers ni bandwidth.
 
 ## Límite de conexiones y expulsión
 

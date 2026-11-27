@@ -356,7 +356,7 @@ class StreamsController extends BaseApiController
                     s.bytes, s.bitrate, s.started_at, s.last_seen
              FROM stream_sessions s
              LEFT JOIN user_lines l ON l.id = s.line_id
-             WHERE s.stream_id = ? AND s.last_seen >= ? AND s.revoked = 0
+             WHERE s.stream_id = ? AND s.last_seen >= ? AND s.revoked = 0 AND s.line_id > 0
              ORDER BY s.last_seen DESC',
             [$streamId, time() - 45]
         );

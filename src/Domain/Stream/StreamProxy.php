@@ -155,7 +155,7 @@ final class StreamProxy
 
         $active = (int) Db::column(
             'SELECT COUNT(DISTINCT session_key) FROM stream_sessions
-             WHERE line_id = ? AND last_seen >= ? AND revoked = 0 AND revoked = 0',
+             WHERE line_id = ? AND last_seen >= ? AND revoked = 0',
             [(int) $this->line['id'], $activeSince]
         );
 
@@ -289,11 +289,11 @@ final class StreamProxy
         $lineId = (int) $this->line['id'];
 
         $viewers = (int) Db::column(
-            'SELECT COUNT(*) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0',
+            'SELECT COUNT(*) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0 AND line_id > 0',
             [$streamId, $activeSince]
         );
         $bandwidth = (int) Db::column(
-            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0',
+            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0 AND line_id > 0',
             [$streamId, $activeSince]
         );
 
@@ -310,11 +310,11 @@ final class StreamProxy
         );
 
         $lineViewers = (int) Db::column(
-            'SELECT COUNT(*) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0',
+            'SELECT COUNT(*) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0 AND line_id > 0',
             [$lineId, $activeSince]
         );
         $lineBandwidth = (int) Db::column(
-            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0',
+            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0 AND line_id > 0',
             [$lineId, $activeSince]
         );
 

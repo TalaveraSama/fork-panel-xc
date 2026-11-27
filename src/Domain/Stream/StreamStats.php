@@ -27,7 +27,7 @@ final class StreamStats
             $activeSince = time() - 45;
             $activeStreams = Db::select(
                 'SELECT stream_id, COUNT(*) AS viewers, COALESCE(SUM(bitrate), 0) AS bandwidth
-                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 GROUP BY stream_id',
+                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 AND line_id > 0 GROUP BY stream_id',
                 [$activeSince]
             );
             $ids = array_map(static fn (array $row): int => (int) $row['stream_id'], $activeStreams);
@@ -72,7 +72,7 @@ final class StreamStats
             Db::execute('UPDATE user_lines SET connected = 0, bitrate = 0');
             $activeLines = Db::select(
                 'SELECT line_id, COUNT(*) AS viewers, COALESCE(SUM(bitrate), 0) AS bandwidth
-                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 GROUP BY line_id',
+                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 AND line_id > 0 GROUP BY line_id',
                 [$activeSince]
             );
 
