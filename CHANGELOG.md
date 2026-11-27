@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin Panel** - Complete management interface
   - Dashboard with real-time metrics and charts
   - Streams management (Live, VOD, Series, Radio)
+  - Stream detail tabs: overview, real stats (viewers/connections/bandwidth +
+    last source test), inline settings (source/type/category/EPG ID/enabled) and
+    per-stream audit log (`stream_logs`)
   - Movies & Series management with TMDB integration
   - Users & Lines management
   - Resellers management

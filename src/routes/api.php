@@ -60,6 +60,7 @@ $router->group('/api', function (Router $router): void {
         $router->put('/{id}', [StreamsController::class, 'update'], ['permission:streams.edit']);
         $router->delete('/{id}', [StreamsController::class, 'destroy'], ['permission:streams.delete']);
         $router->get('/{id}/stats', [StreamsController::class, 'stats']);
+        $router->get('/{id}/logs', [StreamsController::class, 'logs']);
         $router->post('/{id}/test', [StreamsController::class, 'test']);
     });
 

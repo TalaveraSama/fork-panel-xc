@@ -62,19 +62,25 @@ class StreamsController extends BaseApiController
         }
 
         $id = Db::insert(
-            'INSERT INTO streams (stream_display_name, stream_source, stream_icon, stream_type, category_id, enabled, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO streams (stream_display_name, stream_source, stream_icon, stream_type, category_id, epg_channel_id, enabled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (string) $data['stream_display_name'],
                 (string) $data['stream_source'],
                 (string) ($data['stream_icon'] ?? ''),
                 (string) ($data['stream_type'] ?? 'live'),
                 isset($data['category_id']) && $data['category_id'] !== '' ? (int) $data['category_id'] : null,
+                isset($data['epg_channel_id']) && $data['epg_channel_id'] !== '' ? (string) $data['epg_channel_id'] : null,
                 array_key_exists('enabled', $data) ? (!empty($data['enabled']) ? 1 : 0) : 1,
                 time(),
                 time(),
             ]
         );
+
+        $this->logEvent($id, 'info', 'Stream created', [
+            'name' => $data['stream_display_name'],
+            'type' => $data['stream_type'] ?? 'live',
+        ]);
 
         return ApiResponse::json(['data' => $this->find($id)], 201);
     }
@@ -97,7 +103,7 @@ class StreamsController extends BaseApiController
         }
 
         $data = $request->json();
-        $allowed = ['stream_display_name', 'stream_source', 'stream_icon', 'stream_type', 'category_id', 'enabled', 'status'];
+        $allowed = ['stream_display_name', 'stream_source', 'stream_icon', 'stream_type', 'category_id', 'epg_channel_id', 'enabled', 'status'];
 
         $updates = array_intersect_key($data, array_flip($allowed));
 
@@ -111,6 +117,11 @@ class StreamsController extends BaseApiController
         $params[] = $streamId;
 
         Db::execute(sprintf('UPDATE streams SET %s, updated_at = ? WHERE id = ?', $sets), $params);
+
+        $this->logEvent($streamId, 'info', 'Stream updated', [
+            'fields' => array_keys($updates),
+            'name' => $updates['stream_display_name'] ?? null,
+        ]);
 
         return ApiResponse::json(['data' => $this->find($streamId)]);
     }
@@ -175,12 +186,65 @@ class StreamsController extends BaseApiController
 
     public function stats(ApiRequest $request, string $id): ApiResponse
     {
+        $streamId = (int) $id;
+        $stream = $this->find($streamId);
+
+        if ($stream === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
         $row = Db::first(
             'SELECT current_viewers, total_connections, bandwidth FROM stream_stats WHERE stream_id = ? LIMIT 1',
-            [(int) $id]
+            [$streamId]
         );
 
-        return ApiResponse::json(['data' => $row ?? ['current_viewers' => 0, 'total_connections' => 0, 'bandwidth' => 0]]);
+        $lastTest = Db::first(
+            "SELECT level, message, context, created_at FROM stream_logs
+             WHERE stream_id = ? AND message LIKE 'Test %' ORDER BY id DESC LIMIT 1",
+            [$streamId]
+        );
+
+        return ApiResponse::json(['data' => [
+            'current_viewers' => (int) ($row['current_viewers'] ?? 0),
+            'total_connections' => (int) ($row['total_connections'] ?? 0),
+            'bandwidth' => (int) ($row['bandwidth'] ?? 0),
+            'status' => (string) ($stream['status'] ?? 'offline'),
+            'enabled' => (bool) $stream['enabled'],
+            'created_at' => (int) $stream['created_at'],
+            'updated_at' => (int) $stream['updated_at'],
+            'last_test' => $lastTest === null ? null : [
+                'level' => $lastTest['level'],
+                'message' => $lastTest['message'],
+                'context' => json_decode((string) $lastTest['context'], true) ?: [],
+                'created_at' => (int) $lastTest['created_at'],
+            ],
+        ]]);
+    }
+
+    public function logs(ApiRequest $request, string $id): ApiResponse
+    {
+        $streamId = (int) $id;
+
+        if ($this->find($streamId) === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        $limit = min(200, max(1, (int) $request->query('limit', 100)));
+        $rows = Db::select(
+            'SELECT id, level, message, context, created_at FROM stream_logs
+             WHERE stream_id = ? ORDER BY id DESC LIMIT ' . $limit,
+            [$streamId]
+        );
+
+        return ApiResponse::json([
+            'data' => array_map(static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'level' => $row['level'],
+                'message' => $row['message'],
+                'context' => json_decode((string) $row['context'], true) ?: [],
+                'created_at' => (int) $row['created_at'],
+            ], $rows),
+        ]);
     }
 
     public function test(ApiRequest $request, string $id): ApiResponse
@@ -210,14 +274,26 @@ class StreamsController extends BaseApiController
         $contentType = (string) curl_getinfo($handle, CURLINFO_CONTENT_TYPE);
         curl_close($handle);
 
-        return ApiResponse::json([
-            'data' => [
-                'success' => $error === '' && $code >= 200 && $code < 400,
-                'latency' => (int) round((microtime(true) - $start) * 1000),
-                'error' => $error !== '' ? $error : ($code >= 400 ? 'HTTP ' . $code : null),
-                'info' => ['http_code' => $code, 'content_type' => $contentType],
-            ],
-        ]);
+        $result = [
+            'success' => $error === '' && $code >= 200 && $code < 400,
+            'latency' => (int) round((microtime(true) - $start) * 1000),
+            'error' => $error !== '' ? $error : ($code >= 400 ? 'HTTP ' . $code : null),
+            'info' => ['http_code' => $code, 'content_type' => $contentType],
+        ];
+
+        $this->logEvent(
+            (int) $id,
+            $result['success'] ? 'info' : 'warning',
+            $result['success'] ? 'Test passed' : 'Test failed',
+            [
+                'http_code' => $code,
+                'latency_ms' => $result['latency'],
+                'content_type' => $contentType,
+                'error' => $result['error'],
+            ]
+        );
+
+        return ApiResponse::json(['data' => $result]);
     }
 
     public function import(ApiRequest $request): ApiResponse
@@ -277,6 +353,18 @@ class StreamsController extends BaseApiController
             'SELECT s.*, c.category_name FROM streams s LEFT JOIN categories c ON c.id = s.category_id WHERE s.id = ?',
             [$id]
         );
+    }
+
+    private function logEvent(int $streamId, string $level, string $message, array $context = []): void
+    {
+        try {
+            Db::execute(
+                'INSERT INTO stream_logs (stream_id, level, message, context, created_at) VALUES (?, ?, ?, ?, ?)',
+                [$streamId, $level, mb_substr($message, 0, 500), json_encode($context), time()]
+            );
+        } catch (\Throwable) {
+            // Logging must never break the request.
+        }
     }
 
     private function ids(ApiRequest $request): array

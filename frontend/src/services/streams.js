@@ -53,6 +53,12 @@ export const streamsService = {
     return data
   },
 
+  // Get stream audit log
+  async getLogs(id, params = {}) {
+    const { data } = await api.get(`/streams/${id}/logs`, { params })
+    return data
+  },
+
   // Test stream
   async test(id) {
     const { data } = await api.post(`/streams/${id}/test`)
