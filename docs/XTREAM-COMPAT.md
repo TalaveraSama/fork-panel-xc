@@ -83,7 +83,7 @@ de esos valores.
 
 El scheduler (`schedule:daemon`) ejecuta `StreamMonitor::runDue()` cada minuto.
 Cada canal con `monitor_enabled = 1` se comprueba cuando vence su intervalo
-(`monitor_interval`, 30–3600 s):
+(`monitor_interval`, 60–3600 s):
 
 - actualiza `streams.status` (`online`/`offline`),
 - guarda `monitor_last_check`, `monitor_last_status`, `monitor_last_error`,

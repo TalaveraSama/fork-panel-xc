@@ -112,8 +112,8 @@ class StreamsController extends BaseApiController
         if (array_key_exists('monitor_interval', $data)) {
             $interval = (int) $data['monitor_interval'];
 
-            if ($interval < 30 || $interval > 3600) {
-                return ApiResponse::error('Monitor interval must be between 30 and 3600 seconds', 422);
+            if ($interval < 60 || $interval > 3600) {
+                return ApiResponse::error('Monitor interval must be between 60 and 3600 seconds', 422);
             }
 
             $data['monitor_interval'] = $interval;

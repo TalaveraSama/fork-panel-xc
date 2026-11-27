@@ -466,7 +466,6 @@ onMounted(fetchStream)
                 <div>
                   <label class="label" for="s_monitor_interval">Check every</label>
                   <select id="s_monitor_interval" v-model.number="settings.monitor_interval" class="input">
-                    <option :value="30">30 seconds</option>
                     <option :value="60">1 minute</option>
                     <option :value="300">5 minutes</option>
                     <option :value="900">15 minutes</option>
