@@ -259,6 +259,10 @@ class XtreamCompatController extends BaseApiController
 
         $proxy = $this->makeProxy($request, $line, $stream, (string) ($payload['sid'] ?? ''));
 
+        if (!$proxy->canConnect()) {
+            return ApiResponse::error('Connection limit reached', 429);
+        }
+
         if (($payload['k'] ?? '') === 'playlist') {
             return $proxy->servePlaylist((string) $payload['u']);
         }
@@ -275,6 +279,10 @@ class XtreamCompatController extends BaseApiController
     private function proxyFor(ApiRequest $request, array $line, array $stream, string $source): ApiResponse
     {
         $proxy = $this->makeProxy($request, $line, $stream);
+
+        if (!$proxy->canConnect()) {
+            return ApiResponse::error('Connection limit reached', 429);
+        }
 
         if ($proxy->isPlaylistUrl($source)) {
             return $proxy->servePlaylist($source);

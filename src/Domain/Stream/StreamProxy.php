@@ -73,6 +73,45 @@ final class StreamProxy
         return str_ends_with($path, '.m3u8');
     }
 
+    /**
+     * Enforce user_lines.max_connections for new sessions. Existing sessions
+     * (playlist/segment refreshes) are always allowed.
+     */
+    public function canConnect(): bool
+    {
+        $now = time();
+        $activeSince = $now - 45;
+
+        $current = Db::first(
+            'SELECT last_seen, revoked, revoked_at FROM stream_sessions WHERE session_key = ?',
+            [$this->sessionKey]
+        );
+
+        if ($current !== null && (int) $current['revoked'] === 1) {
+            if ((int) $current['revoked_at'] > $now - 60) {
+                return false;
+            }
+        }
+
+        $max = (int) ($this->line['max_connections'] ?? 0);
+
+        if ($max <= 0) {
+            return true;
+        }
+
+        if ($current !== null && (int) $current['last_seen'] >= $activeSince && (int) $current['revoked'] === 0) {
+            return true;
+        }
+
+        $active = (int) Db::column(
+            'SELECT COUNT(DISTINCT session_key) FROM stream_sessions
+             WHERE line_id = ? AND last_seen >= ? AND revoked = 0 AND revoked = 0',
+            [(int) $this->line['id'], $activeSince]
+        );
+
+        return $active < $max;
+    }
+
     private function streamMedia(string $url, string $contentType, int $durationHint = 0): void
     {
         @set_time_limit(0);
@@ -147,8 +186,8 @@ final class StreamProxy
 
             if ($existing === null) {
                 Db::execute(
-                    'INSERT INTO stream_sessions (session_key, line_id, stream_id, ip, user_agent, bytes, bitrate, started_at, last_seen)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO stream_sessions (session_key, line_id, stream_id, ip, user_agent, bytes, bitrate, started_at, last_seen, revoked, revoked_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)',
                     [
                         $this->sessionKey,
                         (int) $this->line['id'],
@@ -164,12 +203,12 @@ final class StreamProxy
             } else {
                 if ($bitrateKbps > 0) {
                     Db::execute(
-                        'UPDATE stream_sessions SET bytes = bytes + ?, bitrate = ?, last_seen = ? WHERE id = ?',
+                        'UPDATE stream_sessions SET bytes = bytes + ?, bitrate = ?, last_seen = ?, revoked = 0, revoked_at = NULL WHERE id = ?',
                         [$bytes, $bitrateKbps, $now, (int) $existing['id']]
                     );
                 } else {
                     Db::execute(
-                        'UPDATE stream_sessions SET bytes = bytes + ?, last_seen = ? WHERE id = ?',
+                        'UPDATE stream_sessions SET bytes = bytes + ?, last_seen = ?, revoked = 0, revoked_at = NULL WHERE id = ?',
                         [$bytes, $now, (int) $existing['id']]
                     );
                 }
@@ -194,11 +233,11 @@ final class StreamProxy
         $lineId = (int) $this->line['id'];
 
         $viewers = (int) Db::column(
-            'SELECT COUNT(*) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ?',
+            'SELECT COUNT(*) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0',
             [$streamId, $activeSince]
         );
         $bandwidth = (int) Db::column(
-            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ?',
+            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE stream_id = ? AND last_seen >= ? AND revoked = 0',
             [$streamId, $activeSince]
         );
 
@@ -215,11 +254,11 @@ final class StreamProxy
         );
 
         $lineViewers = (int) Db::column(
-            'SELECT COUNT(*) FROM stream_sessions WHERE line_id = ? AND last_seen >= ?',
+            'SELECT COUNT(*) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0',
             [$lineId, $activeSince]
         );
         $lineBandwidth = (int) Db::column(
-            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE line_id = ? AND last_seen >= ?',
+            'SELECT COALESCE(SUM(bitrate), 0) FROM stream_sessions WHERE line_id = ? AND last_seen >= ? AND revoked = 0',
             [$lineId, $activeSince]
         );
 

@@ -15,9 +15,9 @@ final class StreamStats
 {
     private static bool $reconciled = false;
 
-    public static function reconcile(): void
+    public static function reconcile(bool $force = false): void
     {
-        if (self::$reconciled) {
+        if (self::$reconciled && !$force) {
             return;
         }
 
@@ -27,7 +27,7 @@ final class StreamStats
             $activeSince = time() - 45;
             $activeStreams = Db::select(
                 'SELECT stream_id, COUNT(*) AS viewers, COALESCE(SUM(bitrate), 0) AS bandwidth
-                 FROM stream_sessions WHERE last_seen >= ? GROUP BY stream_id',
+                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 GROUP BY stream_id',
                 [$activeSince]
             );
 
@@ -62,7 +62,7 @@ final class StreamStats
             Db::execute('UPDATE user_lines SET connected = 0, bitrate = 0');
             $activeLines = Db::select(
                 'SELECT line_id, COUNT(*) AS viewers, COALESCE(SUM(bitrate), 0) AS bandwidth
-                 FROM stream_sessions WHERE last_seen >= ? GROUP BY line_id',
+                 FROM stream_sessions WHERE last_seen >= ? AND revoked = 0 GROUP BY line_id',
                 [$activeSince]
             );
 

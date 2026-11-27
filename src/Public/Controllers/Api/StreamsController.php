@@ -128,7 +128,13 @@ class StreamsController extends BaseApiController
 
     public function destroy(ApiRequest $request, string $id): ApiResponse
     {
-        $deleted = Db::execute('DELETE FROM streams WHERE id = ?', [(int) $id]);
+        $streamId = (int) $id;
+        Db::execute('DELETE FROM stream_sessions WHERE stream_id = ?', [$streamId]);
+        $deleted = Db::execute('DELETE FROM streams WHERE id = ?', [$streamId]);
+
+        if ($deleted > 0) {
+            \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+        }
 
         return $deleted > 0
             ? ApiResponse::json(['success' => true])
@@ -143,10 +149,14 @@ class StreamsController extends BaseApiController
             return ApiResponse::error('IDs array required', 422);
         }
 
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        Db::execute('DELETE FROM stream_sessions WHERE stream_id IN (' . $placeholders . ')', $ids);
         $deleted = Db::execute(
-            'DELETE FROM streams WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')',
+            'DELETE FROM streams WHERE id IN (' . $placeholders . ')',
             $ids
         );
+
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
 
         return ApiResponse::json(['deleted' => $deleted]);
     }
@@ -247,6 +257,67 @@ class StreamsController extends BaseApiController
                 'created_at' => (int) $row['created_at'],
             ], $rows),
         ]);
+    }
+
+    public function sessions(ApiRequest $request, string $id): ApiResponse
+    {
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
+
+        $streamId = (int) $id;
+
+        if ($this->find($streamId) === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        $rows = Db::select(
+            'SELECT s.id, s.session_key, s.line_id, l.username, s.ip, s.user_agent,
+                    s.bytes, s.bitrate, s.started_at, s.last_seen
+             FROM stream_sessions s
+             LEFT JOIN user_lines l ON l.id = s.line_id
+             WHERE s.stream_id = ? AND s.last_seen >= ? AND s.revoked = 0
+             ORDER BY s.last_seen DESC',
+            [$streamId, time() - 45]
+        );
+
+        return ApiResponse::json(['data' => array_map(static fn (array $row): array => [
+            'id' => (int) $row['id'],
+            'session_key' => $row['session_key'],
+            'line_id' => (int) $row['line_id'],
+            'username' => $row['username'],
+            'ip' => $row['ip'],
+            'user_agent' => $row['user_agent'],
+            'bytes' => (int) $row['bytes'],
+            'bitrate' => (int) $row['bitrate'],
+            'started_at' => (int) $row['started_at'],
+            'last_seen' => (int) $row['last_seen'],
+        ], $rows)]);
+    }
+
+    public function kickSession(ApiRequest $request, string $id, string $sessionId): ApiResponse
+    {
+        $streamId = (int) $id;
+
+        if ($this->find($streamId) === null) {
+            return ApiResponse::error('Stream not found', 404);
+        }
+
+        $session = Db::first(
+            'SELECT id FROM stream_sessions WHERE id = ? AND stream_id = ?',
+            [(int) $sessionId, $streamId]
+        );
+
+        if ($session === null) {
+            return ApiResponse::error('Session not found', 404);
+        }
+
+        Db::execute(
+            'UPDATE stream_sessions SET revoked = 1, revoked_at = ?, last_seen = ? WHERE id = ?',
+            [time(), time(), (int) $sessionId]
+        );
+
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+
+        return ApiResponse::json(['success' => true]);
     }
 
     public function test(ApiRequest $request, string $id): ApiResponse

@@ -69,9 +69,18 @@ activas en los últimos 45 s se calculan:
 Las estadísticas del dashboard y de la pestaña **Stats** del canal se alimentan
 de esos valores.
 
+## Límite de conexiones y expulsión
+
+- `user_lines.max_connections` se aplica a las sesiones activas del gateway
+  (ventana de 45 s). Una segunda sesión recibe **429 Connection limit reached**.
+- La pestaña **Stats** del canal lista las conexiones activas (línea, IP,
+  bitrate, último segmento) y permite **Kick** para expulsar una sesión.
+- Al expulsar, los tokens de esa sesión dejan de servir durante 60 s.
+- Si una línea cambia de canal, la sesión anterior puede tardar hasta 45 s en
+  liberar el cupo; para zapping agresivo conviene `max_connections >= 2`.
+
 ## Limitaciones actuales
 
-- No se aplica el límite de conexiones por línea (solo login/expiración).
 - No hay transcodificación ni empaquetado propio: se reenvían los bytes de la
   fuente. Si el origen exige IP/User-Agent distintos, la app podría fallar.
 - Fuentes locales `file://` del Library Scanner no se sirven por HTTP todavía.

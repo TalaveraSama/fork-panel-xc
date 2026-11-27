@@ -404,7 +404,7 @@ Measured: 352 channels, ~2 Gbps inbound, 36 s ring
 ## ✅ Features
 
 - ✅ **API-first architecture** - REST API for all panel functionality
-- ✅ **Xtream Codes compatible player API** - `player_api.php`, `get.php`, `xmltv.php` and `/live|movie|series/{user}/{pass}/{id}` with a panel stream gateway (live viewer/connection/bandwidth stats) for IPTV Smarters, XCIPTV and TiviMate ([guide](docs/XTREAM-COMPAT.md))
+- ✅ **Xtream Codes compatible player API** - `player_api.php`, `get.php`, `xmltv.php` and `/live|movie|series/{user}/{pass}/{id}` with a panel stream gateway (live viewer/connection/bandwidth stats, `max_connections` enforcement and viewer kick) for IPTV Smarters, XCIPTV and TiviMate ([guide](docs/XTREAM-COMPAT.md))
 - ✅ **Modern Vue 3 frontend** - Composition API, Pinia, Vue Router, Tailwind CSS
 - ✅ **Modular plugin system** - Install/manage modules without core modifications
 - ✅ **TMDB metadata module** - Poster, backdrop, synopsis, year, runtime, genres and rating imported from themoviedb.org when adding movies and series

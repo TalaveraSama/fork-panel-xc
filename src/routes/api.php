@@ -61,6 +61,8 @@ $router->group('/api', function (Router $router): void {
         $router->delete('/{id}', [StreamsController::class, 'destroy'], ['permission:streams.delete']);
         $router->get('/{id}/stats', [StreamsController::class, 'stats']);
         $router->get('/{id}/logs', [StreamsController::class, 'logs']);
+        $router->get('/{id}/sessions', [StreamsController::class, 'sessions']);
+        $router->delete('/{id}/sessions/{sessionId}', [StreamsController::class, 'kickSession'], ['permission:streams.edit']);
         $router->post('/{id}/test', [StreamsController::class, 'test']);
     });
 

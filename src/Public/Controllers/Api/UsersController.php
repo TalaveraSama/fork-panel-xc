@@ -468,7 +468,13 @@ class UsersController extends BaseApiController
 
     public function lineDestroy(ApiRequest $request, string $id): ApiResponse
     {
-        $deleted = Db::execute('DELETE FROM user_lines WHERE id = ?', [(int) $id]);
+        $lineId = (int) $id;
+        Db::execute('DELETE FROM stream_sessions WHERE line_id = ?', [$lineId]);
+        $deleted = Db::execute('DELETE FROM user_lines WHERE id = ?', [$lineId]);
+
+        if ($deleted > 0) {
+            \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+        }
 
         return $deleted > 0
             ? ApiResponse::json(['success' => true])

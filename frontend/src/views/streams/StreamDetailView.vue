@@ -12,10 +12,12 @@ const uiStore = useUiStore()
 const stream = ref(null)
 const stats = ref(null)
 const logs = ref([])
+const sessions = ref([])
 const categories = ref([])
 const loading = ref(true)
 const statsLoading = ref(false)
 const logsLoading = ref(false)
+const sessionsLoading = ref(false)
 const savingSettings = ref(false)
 const testing = ref(false)
 const testResult = ref(null)
@@ -68,6 +70,30 @@ async function loadLogs() {
   }
 }
 
+async function loadSessions() {
+  sessionsLoading.value = true
+  try {
+    const response = await streamsService.getSessions(route.params.id)
+    sessions.value = response.data || []
+  } catch (error) {
+    // sessions are informational
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+async function kickSession(session) {
+  if (!window.confirm(`Disconnect ${session.username || 'viewer'} (${session.ip})?`)) return
+
+  try {
+    await streamsService.kickSession(route.params.id, session.id)
+    uiStore.toastSuccess('Viewer disconnected')
+    await Promise.all([loadSessions(), loadStats()])
+  } catch (error) {
+    uiStore.toastError('Failed to disconnect viewer')
+  }
+}
+
 async function fetchStream() {
   loading.value = true
   try {
@@ -77,7 +103,7 @@ async function fetchStream() {
     ])
     applyStream(streamRes.data || streamRes)
     categories.value = categoryRes.data || []
-    await Promise.all([loadStats(), loadLogs()])
+    await Promise.all([loadStats(), loadLogs(), loadSessions()])
   } catch (error) {
     uiStore.toastError('Failed to load stream')
   } finally {
@@ -99,7 +125,7 @@ async function saveSettings() {
     })
     applyStream(response.data || response)
     uiStore.toastSuccess('Stream settings saved')
-    await Promise.all([loadStats(), loadLogs()])
+    await Promise.all([loadStats(), loadLogs(), loadSessions()])
   } catch (error) {
     uiStore.toastError(error.response?.data?.error || 'Failed to save stream settings')
   } finally {
@@ -114,7 +140,7 @@ async function runTest() {
     const response = await streamsService.test(route.params.id)
     testResult.value = response.data || response
     uiStore.toastSuccess(testResult.value.success ? 'Stream test passed' : 'Stream test failed')
-    await Promise.all([loadStats(), loadLogs()])
+    await Promise.all([loadStats(), loadLogs(), loadSessions()])
   } catch (error) {
     uiStore.toastError(error.response?.data?.error || 'Stream test failed')
   } finally {
@@ -279,6 +305,43 @@ onMounted(fetchStream)
               <pre class="mt-2 text-xs bg-dark-50 dark:bg-dark-950 rounded p-2 overflow-x-auto">{{ JSON.stringify(stats.last_test.context, null, 2) }}</pre>
             </template>
             <p v-else class="text-dark-500 dark:text-dark-400">No tests yet. Use “Test stream”.</p>
+          </div>
+
+          <div class="rounded-lg border border-dark-200 dark:border-dark-700 p-4 text-sm">
+            <div class="flex items-center justify-between mb-3">
+              <p class="font-medium text-dark-900 dark:text-white">Active connections</p>
+              <button class="btn-secondary btn-sm" :disabled="sessionsLoading" @click="loadSessions">
+                <ArrowPathIcon class="w-4 h-4" :class="sessionsLoading ? 'animate-spin' : ''" />
+                Refresh
+              </button>
+            </div>
+
+            <p v-if="sessionsLoading" class="text-dark-500 dark:text-dark-400">Loading…</p>
+            <p v-else-if="sessions.length === 0" class="text-dark-500 dark:text-dark-400">No active viewers right now.</p>
+            <div v-else class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr class="text-left text-xs uppercase text-dark-500 dark:text-dark-400">
+                    <th class="py-2 pr-4">Line</th>
+                    <th class="py-2 pr-4">IP</th>
+                    <th class="py-2 pr-4">Bitrate</th>
+                    <th class="py-2 pr-4">Last seen</th>
+                    <th class="py-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-100 dark:divide-dark-800">
+                  <tr v-for="session in sessions" :key="session.id">
+                    <td class="py-2 pr-4 font-medium text-dark-900 dark:text-white">{{ session.username || '—' }}</td>
+                    <td class="py-2 pr-4 text-dark-600 dark:text-dark-300">{{ session.ip || '—' }}</td>
+                    <td class="py-2 pr-4 text-dark-600 dark:text-dark-300">{{ formatBitrate(session.bitrate) }}</td>
+                    <td class="py-2 pr-4 text-dark-500 dark:text-dark-400">{{ formatDateTime(session.last_seen) }}</td>
+                    <td class="py-2 text-right">
+                      <button class="btn-danger btn-sm" @click="kickSession(session)">Kick</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <p class="text-xs text-dark-500 dark:text-dark-400">

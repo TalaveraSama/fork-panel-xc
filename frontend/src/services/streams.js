@@ -59,6 +59,18 @@ export const streamsService = {
     return data
   },
 
+  // Active viewer sessions
+  async getSessions(id) {
+    const { data } = await api.get(`/streams/${id}/sessions`)
+    return data
+  },
+
+  // Kick one viewer session
+  async kickSession(id, sessionId) {
+    const { data } = await api.delete(`/streams/${id}/sessions/${sessionId}`)
+    return data
+  },
+
   // Test stream
   async test(id) {
     const { data } = await api.post(`/streams/${id}/test`)
