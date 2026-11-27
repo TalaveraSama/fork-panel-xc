@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Live streaming (/live/{token})
   - VOD streaming (/movie/{token})
   - Series streaming (/series/{token})
+  - **Xtream Codes compatibility**: `/player_api.php`, `/get.php`, `/xmltv.php`
+    and `/live|movie|series/{username}/{password}/{id}.{ext}` for IPTV Smarters,
+    XCIPTV and TiviMate (line credentials, 302 to the source). See
+    `docs/XTREAM-COMPAT.md`.
   - EPG XML generation (/epg/{token}.xml)
   - Player API compatibility
   - Panel API (Ministra/STB) compatibility

@@ -22,6 +22,7 @@ use ForkPanelXc\Public\Controllers\Api\StreamingController;
 use ForkPanelXc\Public\Controllers\Api\StreamsController;
 use ForkPanelXc\Public\Controllers\Api\ToolsController;
 use ForkPanelXc\Public\Controllers\Api\UsersController;
+use ForkPanelXc\Public\Controllers\Api\XtreamCompatController;
 
 $router = new Router();
 
@@ -198,6 +199,14 @@ $router->group('/panel_api', function (Router $router): void {
     $router->get('/get_channels', [PanelApiController::class, 'getChannels']);
     $router->get('/get_epg', [PanelApiController::class, 'getEpg']);
 }, ['panel_auth']);
+
+// ---- Xtream Codes compatible surface (IPTV players) -----------------------
+$router->get('/player_api.php', [XtreamCompatController::class, 'playerApi']);
+$router->get('/get.php', [XtreamCompatController::class, 'playlist']);
+$router->get('/xmltv.php', [XtreamCompatController::class, 'xmltv']);
+$router->get('/live/{username}/{password}/{file}', [XtreamCompatController::class, 'live']);
+$router->get('/movie/{username}/{password}/{file}', [XtreamCompatController::class, 'movie']);
+$router->get('/series/{username}/{password}/{file}', [XtreamCompatController::class, 'series']);
 
 // ---- Streaming endpoints (signed tokens) ----------------------------------
 $router->get('/live/{token}', [StreamingController::class, 'live']);

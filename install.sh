@@ -337,6 +337,15 @@ server {
         fastcgi_read_timeout 300s;
     }
 
+    # Xtream Codes compatibility (IPTV Smarters, XCIPTV, TiviMate…)
+    location ~ ^/(player_api|panel_api|get|xmltv)\.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;
+        fastcgi_param REQUEST_URI \$request_uri;
+        fastcgi_pass unix:${APP_PHP_SOCKET};
+        fastcgi_read_timeout 300s;
+    }
+
     location ~ ^/(live|movie|series|epg)/ {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;
