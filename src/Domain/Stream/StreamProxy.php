@@ -54,9 +54,58 @@ final class StreamProxy
         );
     }
 
-    public function serveMedia(string $url, string $contentType = 'application/octet-stream', int $durationHint = 0): ApiResponse
-    {
+    public function serveMedia(
+        string $url,
+        string $contentType = 'application/octet-stream',
+        int $durationHint = 0,
+        ?string $range = null,
+        bool $preflight = false
+    ): ApiResponse {
         $this->touchSession(0, 0);
+
+        if ($preflight || $range !== null) {
+            $meta = $this->preflight($url, $range);
+
+            if ($meta['status'] === 0 || ($meta['status'] >= 400 && $meta['status'] !== 416)) {
+                return ApiResponse::error('Source unavailable', 502);
+            }
+
+            $status = $meta['status'] === 206 ? 206 : 200;
+            $length = $meta['length'];
+            $contentRange = $meta['content_range'];
+
+            // A ranged metadata probe (0-0) without a client Range must still
+            // answer 200 with the full length, not a partial 206.
+            if ($range === null || $range === '') {
+                if ($contentRange !== null && preg_match('#/(\d+)$#', $contentRange, $match)) {
+                    $length = (int) $match[1];
+                }
+
+                $contentRange = null;
+                $status = 200;
+            }
+
+            $headers = [
+                'Content-Type' => $meta['content_type'] ?: $contentType,
+                'Accept-Ranges' => 'bytes',
+            ];
+
+            if ($length !== null) {
+                $headers['Content-Length'] = (string) $length;
+            }
+
+            if ($contentRange !== null && $status === 206) {
+                $headers['Content-Range'] = $contentRange;
+            }
+
+            return ApiResponse::stream(
+                function () use ($url, $contentType, $durationHint, $range): void {
+                    $this->streamMedia($url, $contentType, $durationHint, $range);
+                },
+                $headers,
+                $status
+            );
+        }
 
         return ApiResponse::stream(
             function () use ($url, $contentType, $durationHint): void {
@@ -112,7 +161,7 @@ final class StreamProxy
         return $active < $max;
     }
 
-    private function streamMedia(string $url, string $contentType, int $durationHint = 0): void
+    private function streamMedia(string $url, string $contentType, int $durationHint = 0, ?string $range = null): void
     {
         @set_time_limit(0);
         while (ob_get_level() > 0) {
@@ -127,12 +176,18 @@ final class StreamProxy
         $lastTouch = $started;
 
         $handle = curl_init($url);
+        $requestHeaders = ['Accept: */*'];
+
+        if ($range !== null && $range !== '') {
+            $requestHeaders[] = 'Range: ' . $range;
+        }
+
         curl_setopt_array($handle, [
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_USERAGENT => $this->userAgent ?: 'ForkPanelXC/1.0',
-            CURLOPT_HTTPHEADER => ['Accept: */*'],
+            CURLOPT_HTTPHEADER => $requestHeaders,
             CURLOPT_HEADERFUNCTION => function ($curl, string $header) use (&$status): int {
                 if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $match)) {
                     $status = (int) $match[1];
@@ -362,6 +417,74 @@ final class StreamProxy
         }
 
         return $scheme . '://' . $host . $port . '/' . implode('/', $segments);
+    }
+
+    /**
+     * Ask the origin for size/type/range metadata before streaming a VOD file.
+     * HEAD is preferred; a ranged GET 0-0 is used when HEAD is rejected.
+     */
+    private function preflight(string $url, ?string $range): array
+    {
+        $meta = $this->requestMeta($url, $range, true);
+
+        if ($meta['status'] === 0 || ($meta['status'] >= 400 && $meta['status'] !== 416)) {
+            $meta = $this->requestMeta($url, $range, false);
+        }
+
+        return $meta;
+    }
+
+    private function requestMeta(string $url, ?string $range, bool $head): array
+    {
+        $status = 0;
+        $headers = [];
+        $handle = curl_init($url);
+        $requestHeaders = ['Accept: */*'];
+
+        if ($range !== null && $range !== '') {
+            $requestHeaders[] = 'Range: ' . $range;
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => 6,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_NOBODY => $head,
+            CURLOPT_USERAGENT => $this->userAgent ?: 'ForkPanelXC/1.0',
+            CURLOPT_HTTPHEADER => $requestHeaders,
+            CURLOPT_HEADERFUNCTION => function ($curl, string $line) use (&$status, &$headers): int {
+                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $match)) {
+                    $status = (int) $match[1];
+                } elseif (str_contains($line, ':')) {
+                    [$name, $value] = explode(':', $line, 2);
+                    $headers[strtolower(trim($name))] = trim($value);
+                }
+
+                return strlen($line);
+            },
+        ]);
+
+        if (!$head) {
+            curl_setopt($handle, CURLOPT_RANGE, $range !== null && $range !== '' ? $range : '0-0');
+            curl_setopt($handle, CURLOPT_WRITEFUNCTION, static fn ($curl, string $chunk): int => strlen($chunk));
+        }
+
+        curl_exec($handle);
+        curl_close($handle);
+
+        $length = isset($headers['content-length']) ? (int) $headers['content-length'] : null;
+        $contentRange = $headers['content-range'] ?? null;
+
+        if ($length === null && $contentRange !== null && preg_match('#/(\d+)$#', $contentRange, $match)) {
+            $length = (int) $match[1];
+        }
+
+        return [
+            'status' => $status,
+            'length' => $length,
+            'content_type' => $headers['content-type'] ?? '',
+            'content_range' => $contentRange,
+        ];
     }
 
     private function fetch(string $url, int $timeout): array

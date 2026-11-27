@@ -207,7 +207,14 @@ class XtreamCompatController extends BaseApiController
             return ApiResponse::error('Not found', 404);
         }
 
-        return $this->proxyFor($request, $line, $stream, (string) $stream['stream_source']);
+        return $this->proxyFor(
+            $request,
+            $line,
+            $stream,
+            (string) $stream['stream_source'],
+            (string) $request->header('Range', ''),
+            true
+        );
     }
 
     public function series(ApiRequest $request, string $username, string $password, string $file): ApiResponse
@@ -229,7 +236,14 @@ class XtreamCompatController extends BaseApiController
 
         $series = Db::first('SELECT * FROM series WHERE id = ?', [(int) $episode['series_id']]) ?? [];
 
-        return $this->proxyFor($request, $line, $series + ['id' => (int) $episode['series_id']], (string) $episode['source']);
+        return $this->proxyFor(
+            $request,
+            $line,
+            $series + ['id' => (int) $episode['series_id']],
+            (string) $episode['source'],
+            (string) $request->header('Range', ''),
+            true
+        );
     }
 
     /**
@@ -276,8 +290,14 @@ class XtreamCompatController extends BaseApiController
         );
     }
 
-    private function proxyFor(ApiRequest $request, array $line, array $stream, string $source): ApiResponse
-    {
+    private function proxyFor(
+        ApiRequest $request,
+        array $line,
+        array $stream,
+        string $source,
+        ?string $range = null,
+        bool $preflight = false
+    ): ApiResponse {
         $proxy = $this->makeProxy($request, $line, $stream);
 
         if (!$proxy->canConnect()) {
@@ -290,7 +310,13 @@ class XtreamCompatController extends BaseApiController
 
         $contentType = (($stream['stream_type'] ?? '') === 'live') ? 'video/mp2t' : $this->contentTypeFor($source);
 
-        return $proxy->serveMedia($source, $contentType, 0);
+        return $proxy->serveMedia(
+            $source,
+            $contentType,
+            0,
+            $range !== null && $range !== '' ? $range : null,
+            $preflight || ($range !== null && $range !== '')
+        );
     }
 
     private function contentTypeFor(string $url): string

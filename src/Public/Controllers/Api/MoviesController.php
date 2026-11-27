@@ -146,7 +146,13 @@ class MoviesController extends BaseApiController
 
     public function destroy(ApiRequest $request, string $id): ApiResponse
     {
-        $deleted = Db::execute("DELETE FROM streams WHERE id = ? AND stream_type = 'movie'", [(int) $id]);
+        $movieId = (int) $id;
+        Db::execute('DELETE FROM stream_sessions WHERE stream_id = ?', [$movieId]);
+        $deleted = Db::execute("DELETE FROM streams WHERE id = ? AND stream_type = 'movie'", [$movieId]);
+
+        if ($deleted > 0) {
+            \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+        }
 
         return $deleted > 0
             ? ApiResponse::json(['success' => true])

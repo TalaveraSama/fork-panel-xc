@@ -20,6 +20,9 @@ autenticando con las credenciales de una **línea** (`user_lines`).
 | `/series/{username}/{password}/{episode_id}.{ext}` | Episodio (gateway) |
 | `/stream/{token}` | Playlist/segmento firmado del gateway |
 
+Las películas y episodios admiten **HTTP Range** (`206 Partial Content`),
+`Content-Length` y `Accept-Ranges`, por lo que el player puede hacer seek.
+
 La respuesta de login incluye `user_info` (auth, status, exp_date,
 max_connections, allowed_output_formats) y `server_info` (url, port,
 server_protocol).

@@ -67,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     XCIPTV and TiviMate (line credentials). HLS playlists/segments are proxied
     through the panel via signed `/stream/{token}` URLs, with per-session
     viewer/connection/bandwidth stats. See `docs/XTREAM-COMPAT.md`.
+  - VOD (`/movie`, `/series`) supports HTTP Range (`206`), `Content-Length` and
+    `Accept-Ranges`, so movies can seek in IPTV players.
   - **Connection limit**: `user_lines.max_connections` is enforced by the
     gateway; active sessions are listed in the stream Stats tab with a **Kick**
     action (60 s token revocation).
