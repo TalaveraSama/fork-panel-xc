@@ -71,6 +71,12 @@ export const streamsService = {
     return data
   },
 
+  // Check all sources now
+  async monitorAll() {
+    const { data } = await api.post('/streams/monitor-all')
+    return data
+  },
+
   // Restart stream (drop sessions + check source)
   async restart(id) {
     const { data } = await api.post(`/streams/${id}/restart`)

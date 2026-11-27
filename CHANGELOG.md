@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Stream monitoring**: per-channel interval, `online/offline` source checks
     from the scheduler, Check now / Restart actions and monitor state in Stats
     (migration `008_stream_monitor.sql`)
+  - Monitor options: failure threshold (1–5 checks), auto-restart sessions on
+    offline, global **Check all** in the Streams list (migration
+    `009_stream_monitor_options.sql`)
   - Streams list shows green **Online** / red **Offline** (or **Disabled**)
     from monitor state, with 30 s auto-refresh and online/offline filters
   - Movies & Series management with TMDB integration

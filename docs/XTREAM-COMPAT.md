@@ -90,11 +90,22 @@ Cada canal con `monitor_enabled = 1` se comprueba cuando vence su intervalo
 - escribe en `stream_logs` solo cuando cambia el estado o el error,
 - `GET /api/streams/{id}/stats` expone el estado y el próximo chequeo.
 
+Opciones por canal:
+
+- **Check every**: 1 min, 5 min, 15 min o 1 h.
+- **Mark offline after**: 1, 2, 3 o 5 chequeos fallidos (por defecto 1).
+  Mientras no se alcanza el umbral, el canal sigue `online` y guarda el error.
+- **Auto-restart sessions when offline**: al pasar a `offline` se eliminan las
+  sesiones activas para forzar la reconexión de los players.
+- **Check all** en la lista de Streams: comprueba todos los canales habilitados
+  de inmediato.
+
 En **Streams → canal → Stats** tienes:
 
 - **Check now**: comprueba la fuente inmediatamente.
 - **Restart**: expulsa las sesiones activas y vuelve a comprobar la fuente.
-- **Source monitoring**: enabled, intervalo, último chequeo y próximo chequeo.
+- **Source monitoring**: enabled, intervalo, umbral de fallos, auto-restart,
+  último chequeo, próximo chequeo y último error.
 
 Los canales monitorizados mantienen su estado `online` aunque no tengan viewers;
 los no monitorizados pasan a `offline` cuando no hay sesiones.

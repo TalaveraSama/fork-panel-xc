@@ -51,6 +51,7 @@ $router->group('/api', function (Router $router): void {
     $router->group('/streams', function (Router $router): void {
         $router->get('', [StreamsController::class, 'index']);
         $router->post('', [StreamsController::class, 'store'], ['permission:streams.create']);
+        $router->post('/monitor-all', [StreamsController::class, 'monitorAll'], ['permission:streams.edit']);
         $router->get('/categories', [StreamsController::class, 'categories']);
         $router->get('/export', [StreamsController::class, 'export']);
         $router->post('/import', [StreamsController::class, 'import'], ['permission:streams.create']);

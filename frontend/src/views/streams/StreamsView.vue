@@ -5,7 +5,7 @@ import { useUiStore } from '@stores/ui'
 import streamsService from '@services/streams'
 import { formatNumber, getStatusColor } from '@utils/format'
 import DataTable from '@components/ui/DataTable.vue'
-import { PlusIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, PlayIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -25,6 +25,7 @@ const filters = ref({
 const sort = ref({ field: 'id', direction: 'desc' })
 const selectedIds = ref([])
 const categories = ref([])
+const checkingAll = ref(false)
 let refreshTimer = null
 
 // Computed
@@ -130,6 +131,20 @@ async function deleteStream(id) {
     fetchStreams()
   } catch (error) {
     uiStore.toastError('Failed to delete stream')
+  }
+}
+
+async function checkAllStreams() {
+  checkingAll.value = true
+  try {
+    const response = await streamsService.monitorAll()
+    const result = response.data || response
+    uiStore.toastSuccess(`Checked ${result.checked || 0}: ${result.online || 0} online, ${result.offline || 0} offline`)
+    fetchStreams()
+  } catch (error) {
+    uiStore.toastError('Monitor check failed')
+  } finally {
+    checkingAll.value = false
   }
 }
 
@@ -243,6 +258,11 @@ onUnmounted(() => {
               <option value="series">Series</option>
               <option value="radio">Radio</option>
             </select>
+
+            <button @click="checkAllStreams" :disabled="checkingAll" class="btn-secondary">
+              <PlayIcon class="w-4 h-4" />
+              {{ checkingAll ? 'Checking…' : 'Check all' }}
+            </button>
 
             <button @click="clearFilters" class="btn-secondary">
               <FunnelIcon class="w-4 h-4" />

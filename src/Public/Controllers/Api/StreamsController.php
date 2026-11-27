@@ -111,7 +111,8 @@ class StreamsController extends BaseApiController
         $allowed = [
             'stream_display_name', 'stream_source', 'stream_icon', 'stream_type',
             'category_id', 'epg_channel_id', 'enabled', 'status',
-            'monitor_enabled', 'monitor_interval',
+            'monitor_enabled', 'monitor_interval', 'monitor_fail_threshold',
+            'monitor_autorestart',
         ];
 
         if (array_key_exists('monitor_interval', $data)) {
@@ -122,6 +123,16 @@ class StreamsController extends BaseApiController
             }
 
             $data['monitor_interval'] = $interval;
+        }
+
+        if (array_key_exists('monitor_fail_threshold', $data)) {
+            $threshold = (int) $data['monitor_fail_threshold'];
+
+            if ($threshold < 1 || $threshold > 10) {
+                return ApiResponse::error('Monitor fail threshold must be between 1 and 10', 422);
+            }
+
+            $data['monitor_fail_threshold'] = $threshold;
         }
 
         $updates = array_intersect_key($data, array_flip($allowed));
@@ -215,6 +226,15 @@ class StreamsController extends BaseApiController
         return ApiResponse::json(['data' => Db::select('SELECT id, category_name AS name, category_type AS type FROM categories ORDER BY category_name')]);
     }
 
+    public function monitorAll(ApiRequest $request): ApiResponse
+    {
+        $result = \ForkPanelXc\Domain\Stream\StreamMonitor::checkAll(
+            min(200, max(1, (int) $request->query('limit', 100)))
+        );
+
+        return ApiResponse::json(['data' => $result]);
+    }
+
     public function monitor(ApiRequest $request, string $id): ApiResponse
     {
         $streamId = (int) $id;
@@ -280,6 +300,9 @@ class StreamsController extends BaseApiController
             'monitor_last_check' => $stream['monitor_last_check'] !== null ? (int) $stream['monitor_last_check'] : null,
             'monitor_last_status' => $stream['monitor_last_status'] !== null ? (int) $stream['monitor_last_status'] : null,
             'monitor_last_error' => $stream['monitor_last_error'] ?? null,
+            'monitor_fail_threshold' => (int) ($stream['monitor_fail_threshold'] ?? 1),
+            'monitor_fail_count' => (int) ($stream['monitor_fail_count'] ?? 0),
+            'monitor_autorestart' => (bool) ($stream['monitor_autorestart'] ?? false),
             'next_check' => $stream['monitor_last_check'] !== null
                 ? (int) $stream['monitor_last_check'] + (int) ($stream['monitor_interval'] ?? 60)
                 : null,

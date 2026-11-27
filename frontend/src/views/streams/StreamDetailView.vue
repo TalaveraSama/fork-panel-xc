@@ -35,6 +35,8 @@ const settings = reactive({
   enabled: true,
   monitor_enabled: true,
   monitor_interval: 60,
+  monitor_fail_threshold: 1,
+  monitor_autorestart: false,
 })
 
 function applyStream(data) {
@@ -49,6 +51,8 @@ function applyStream(data) {
     enabled: !!data.enabled,
     monitor_enabled: data.monitor_enabled !== undefined ? !!data.monitor_enabled : true,
     monitor_interval: data.monitor_interval || 60,
+    monitor_fail_threshold: data.monitor_fail_threshold || 1,
+    monitor_autorestart: data.monitor_autorestart !== undefined ? !!data.monitor_autorestart : false,
   })
 }
 
@@ -130,6 +134,8 @@ async function saveSettings() {
       enabled: settings.enabled,
       monitor_enabled: settings.monitor_enabled,
       monitor_interval: settings.monitor_interval,
+      monitor_fail_threshold: settings.monitor_fail_threshold,
+      monitor_autorestart: settings.monitor_autorestart,
     })
     applyStream(response.data || response)
     uiStore.toastSuccess('Stream settings saved')
@@ -361,6 +367,8 @@ onMounted(fetchStream)
               <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Interval</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_interval || 60 }} s</dd></div>
               <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Last check</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_last_check ? formatDateTime(stats.monitor_last_check) : 'Never' }}</dd></div>
               <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Next check</dt><dd class="text-dark-900 dark:text-white">{{ stats?.next_check ? formatDateTime(stats.next_check) : '—' }}</dd></div>
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Failures</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_fail_count || 0 }} / {{ stats?.monitor_fail_threshold || 1 }}</dd></div>
+              <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Auto-restart</dt><dd class="text-dark-900 dark:text-white">{{ stats?.monitor_autorestart ? 'Enabled' : 'Disabled' }}</dd></div>
             </dl>
             <p v-if="stats?.monitor_last_error" class="mt-2 text-red-600 dark:text-red-400">Last error: {{ stats.monitor_last_error }}</p>
           </div>
@@ -472,6 +480,19 @@ onMounted(fetchStream)
                     <option :value="3600">1 hour</option>
                   </select>
                 </div>
+                <div>
+                  <label class="label" for="s_monitor_threshold">Mark offline after</label>
+                  <select id="s_monitor_threshold" v-model.number="settings.monitor_fail_threshold" class="input">
+                    <option :value="1">1 failed check</option>
+                    <option :value="2">2 failed checks</option>
+                    <option :value="3">3 failed checks</option>
+                    <option :value="5">5 failed checks</option>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-dark-700 dark:text-dark-300">
+                  <input v-model="settings.monitor_autorestart" type="checkbox" class="w-4 h-4 rounded border-dark-300 text-primary-600 focus:ring-primary-500" />
+                  Auto-restart sessions when offline
+                </label>
               </div>
             </div>
 
