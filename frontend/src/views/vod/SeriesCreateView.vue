@@ -1,8 +1,9 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '@stores/ui'
 import seriesService from '@services/series'
+import streamsService from '@services/streams'
 import TmdbPicker from '@components/tmdb/TmdbPicker.vue'
 import { StarIcon } from '@heroicons/vue/24/outline'
 
@@ -10,6 +11,7 @@ const router = useRouter()
 const uiStore = useUiStore()
 const saving = ref(false)
 const tmdb = ref(null)
+const categories = ref([])
 
 const form = reactive({
   name: '',
@@ -21,7 +23,20 @@ const form = reactive({
   genres: '',
   first_air_date: '',
   tmdb_id: '',
+  category_id: '',
   enabled: true,
+})
+
+onMounted(async () => {
+  try {
+    const response = await streamsService.getCategories()
+    categories.value = (response.data || []).filter((category) => {
+      const type = category.type || category.category_type
+      return type === 'series'
+    })
+  } catch (error) {
+    // categories are optional
+  }
 })
 
 function applyTmdb(data) {
@@ -119,6 +134,14 @@ async function submit() {
           <div>
             <label for="tmdb_id" class="label">TMDB ID</label>
             <input id="tmdb_id" v-model="form.tmdb_id" type="number" class="input" />
+          </div>
+
+          <div>
+            <label for="category_id" class="label">Category</label>
+            <select id="category_id" v-model="form.category_id" class="input">
+              <option value="">Uncategorized</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+            </select>
           </div>
 
           <label class="flex items-center gap-2 text-sm text-dark-700 dark:text-dark-300">

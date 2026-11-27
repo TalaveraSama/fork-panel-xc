@@ -69,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     viewer/connection/bandwidth stats. See `docs/XTREAM-COMPAT.md`.
   - VOD (`/movie`, `/series`) supports HTTP Range (`206`), `Content-Length` and
     `Accept-Ranges`, so movies can seek in IPTV players.
+  - Series categories (`series.category_id`, migration `010`), exposed through
+    `get_series_categories`/`get_series` and the Add Series form.
   - **Connection limit**: `user_lines.max_connections` is enforced by the
     gateway; active sessions are listed in the stream Stats tab with a **Kick**
     action (60 s token revocation).

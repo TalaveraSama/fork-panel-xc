@@ -19,18 +19,25 @@ class SeriesController extends BaseApiController
 
         $search = trim((string) $request->query('search', ''));
         if ($search !== '') {
-            $where[] = 'name LIKE ?';
+            $where[] = 's.name LIKE ?';
             $params[] = '%' . $search . '%';
         }
 
+        $categoryId = (int) $request->query('category_id', 0);
+        if ($categoryId > 0) {
+            $where[] = 's.category_id = ?';
+            $params[] = $categoryId;
+        }
+
         $whereSql = implode(' AND ', $where);
-        $total = (int) Db::column('SELECT COUNT(*) FROM series WHERE ' . $whereSql, $params);
+        $total = (int) Db::column('SELECT COUNT(*) FROM series s WHERE ' . $whereSql, $params);
         $rows = Db::select(
             sprintf(
-                'SELECT s.*,
+                'SELECT s.*, c.category_name,
                         (SELECT COUNT(DISTINCT season_num) FROM episodes WHERE series_id = s.id) AS seasons_count,
                         (SELECT COUNT(*) FROM episodes WHERE series_id = s.id) AS episodes_count
-                 FROM series s WHERE %s ORDER BY name ASC LIMIT %d OFFSET %d',
+                 FROM series s LEFT JOIN categories c ON c.id = s.category_id
+                 WHERE %s ORDER BY s.name ASC LIMIT %d OFFSET %d',
                 $whereSql,
                 $perPage,
                 $offset
@@ -43,7 +50,10 @@ class SeriesController extends BaseApiController
 
     public function show(ApiRequest $request, string $id): ApiResponse
     {
-        $row = Db::first('SELECT * FROM series WHERE id = ?', [(int) $id]);
+        $row = Db::first(
+            'SELECT s.*, c.category_name FROM series s LEFT JOIN categories c ON c.id = s.category_id WHERE s.id = ?',
+            [(int) $id]
+        );
 
         if ($row === null) {
             return ApiResponse::error('Series not found', 404);
@@ -63,12 +73,13 @@ class SeriesController extends BaseApiController
         }
 
         $id = Db::insert(
-            'INSERT INTO series (name, description, cover, tmdb_id, overview, backdrop, rating, genres, original_title, first_air_date, enabled, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO series (name, description, cover, category_id, tmdb_id, overview, backdrop, rating, genres, original_title, first_air_date, enabled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (string) ($data['name'] ?? $data['title']),
                 $this->text($data['overview'] ?? $data['description'] ?? null),
                 $this->text($data['cover'] ?? $data['stream_icon'] ?? null),
+                isset($data['category_id']) && $data['category_id'] !== '' ? (int) $data['category_id'] : null,
                 $this->integer($data['tmdb_id'] ?? null),
                 $this->text($data['overview'] ?? null),
                 $this->text($data['backdrop'] ?? null),
@@ -90,7 +101,7 @@ class SeriesController extends BaseApiController
         $data = $request->json();
         $allowed = array_intersect_key($data, array_flip([
             'name', 'title', 'description', 'overview', 'cover', 'stream_icon', 'backdrop', 'rating',
-            'genres', 'original_title', 'first_air_date', 'tmdb_id', 'enabled',
+            'genres', 'original_title', 'first_air_date', 'tmdb_id', 'category_id', 'enabled',
         ]));
 
         if ($allowed === []) {
@@ -125,6 +136,10 @@ class SeriesController extends BaseApiController
             $allowed['tmdb_id'] = $this->integer($allowed['tmdb_id']);
         }
 
+        if (array_key_exists('category_id', $allowed)) {
+            $allowed['category_id'] = $allowed['category_id'] !== '' ? $this->integer($allowed['category_id']) : null;
+        }
+
         $sets = implode(', ', array_map(static fn (string $key): string => $key . ' = ?', array_keys($allowed)));
         $params = array_values($allowed);
         $params[] = time();
@@ -137,8 +152,14 @@ class SeriesController extends BaseApiController
 
     public function destroy(ApiRequest $request, string $id): ApiResponse
     {
-        Db::execute('DELETE FROM episodes WHERE series_id = ?', [(int) $id]);
-        $deleted = Db::execute('DELETE FROM series WHERE id = ?', [(int) $id]);
+        $seriesId = (int) $id;
+        Db::execute('DELETE FROM stream_sessions WHERE stream_id = ?', [$seriesId]);
+        Db::execute('DELETE FROM episodes WHERE series_id = ?', [$seriesId]);
+        $deleted = Db::execute('DELETE FROM series WHERE id = ?', [$seriesId]);
+
+        if ($deleted > 0) {
+            \ForkPanelXc\Domain\Stream\StreamStats::reconcile(true);
+        }
 
         return $deleted > 0 ? ApiResponse::json(['success' => true]) : ApiResponse::error('Series not found', 404);
     }

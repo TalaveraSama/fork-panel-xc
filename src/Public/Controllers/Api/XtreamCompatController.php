@@ -498,6 +498,7 @@ class XtreamCompatController extends BaseApiController
             'rating' => (string) ($row['rating'] ?? '0'),
             'rating_5based' => round(((float) ($row['rating'] ?? 0)) / 2, 1),
             'backdrop_path' => [(string) ($row['backdrop'] ?? '')],
+            'category_id' => (string) ($row['category_id'] ?? ''),
         ], $rows);
     }
 

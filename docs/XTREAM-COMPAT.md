@@ -22,6 +22,8 @@ autenticando con las credenciales de una **línea** (`user_lines`).
 
 Las películas y episodios admiten **HTTP Range** (`206 Partial Content`),
 `Content-Length` y `Accept-Ranges`, por lo que el player puede hacer seek.
+Las series usan `series.category_id` y aparecen en `get_series_categories` /
+`get_series` con su categoría.
 
 La respuesta de login incluye `user_info` (auth, status, exp_date,
 max_connections, allowed_output_formats) y `server_info` (url, port,
