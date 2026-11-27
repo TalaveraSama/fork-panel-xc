@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '@stores/ui'
 import streamsService from '@services/streams'
@@ -25,6 +25,7 @@ const filters = ref({
 const sort = ref({ field: 'id', direction: 'desc' })
 const selectedIds = ref([])
 const categories = ref([])
+let refreshTimer = null
 
 // Computed
 const hasSelection = computed(() => selectedIds.value.length > 0)
@@ -175,6 +176,18 @@ const columns = [
 onMounted(() => {
   fetchStreams()
   fetchCategories()
+
+  refreshTimer = window.setInterval(() => {
+    if (document.visibilityState === 'visible' && !loading.value) {
+      fetchStreams()
+    }
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+  }
 })
 </script>
 
@@ -307,8 +320,12 @@ onMounted(() => {
         </template>
 
         <template #cell-status="{ row }">
-          <span :class="['badge', getStatusColor(row.enabled ? 'online' : 'offline')]">
-            {{ row.enabled ? 'Enabled' : 'Disabled' }}
+          <span
+            :class="['badge', !row.enabled ? 'badge-danger' : (row.status === 'online' ? 'badge-success' : 'badge-danger')]"
+            :title="!row.enabled ? 'Stream disabled' : (row.monitor_last_error || (row.status === 'online' ? 'Source reachable' : 'Source unreachable'))"
+          >
+            <span v-if="row.enabled" :class="['inline-block w-1.5 h-1.5 rounded-full mr-1.5', row.status === 'online' ? 'bg-green-500' : 'bg-red-500']" />
+            {{ !row.enabled ? 'Disabled' : (row.status === 'online' ? 'Online' : 'Offline') }}
           </span>
         </template>
 

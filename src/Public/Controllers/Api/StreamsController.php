@@ -28,8 +28,13 @@ class StreamsController extends BaseApiController
             $value = $request->query($query);
 
             if ($value !== null && $value !== '') {
-                $where[] = $column . ' = ?';
-                $params[] = $value;
+                if ($query === 'status' && in_array($value, ['enabled', 'disabled'], true)) {
+                    $where[] = 'enabled = ?';
+                    $params[] = $value === 'enabled' ? 1 : 0;
+                } else {
+                    $where[] = $column . ' = ?';
+                    $params[] = $value;
+                }
             }
         }
 
