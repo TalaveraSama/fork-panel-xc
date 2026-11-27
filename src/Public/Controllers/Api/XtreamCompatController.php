@@ -7,6 +7,8 @@ namespace ForkPanelXc\Public\Controllers\Api;
 use ForkPanelXc\Core\Http\ApiRequest;
 use ForkPanelXc\Core\Http\ApiResponse;
 use ForkPanelXc\Core\Support\Db;
+use ForkPanelXc\Core\Support\ProxyToken;
+use ForkPanelXc\Domain\Stream\StreamProxy;
 
 /**
  * Xtream Codes compatible surface used by IPTV players (IPTV Smarters,
@@ -170,44 +172,143 @@ class XtreamCompatController extends BaseApiController
 
     public function live(ApiRequest $request, string $username, string $password, string $file): ApiResponse
     {
-        if ($this->authenticate($username, $password) === null) {
+        $line = $this->authenticate($username, $password);
+
+        if ($line === null) {
             return ApiResponse::error('Not found', 404);
         }
 
         $stream = Db::first(
-            "SELECT stream_source FROM streams WHERE id = ? AND stream_type = 'live' AND enabled = 1",
+            "SELECT * FROM streams WHERE id = ? AND stream_type = 'live' AND enabled = 1",
             [$this->fileId($file)]
         );
 
-        return $this->redirectToSource($stream['stream_source'] ?? null);
+        if ($stream === null || empty($stream['stream_source'])) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        return $this->proxyFor($request, $line, $stream, (string) $stream['stream_source']);
     }
 
     public function movie(ApiRequest $request, string $username, string $password, string $file): ApiResponse
     {
-        if ($this->authenticate($username, $password) === null) {
+        $line = $this->authenticate($username, $password);
+
+        if ($line === null) {
             return ApiResponse::error('Not found', 404);
         }
 
         $stream = Db::first(
-            "SELECT stream_source FROM streams WHERE id = ? AND stream_type = 'movie' AND enabled = 1",
+            "SELECT * FROM streams WHERE id = ? AND stream_type = 'movie' AND enabled = 1",
             [$this->fileId($file)]
         );
 
-        return $this->redirectToSource($stream['stream_source'] ?? null);
+        if ($stream === null || empty($stream['stream_source'])) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        return $this->proxyFor($request, $line, $stream, (string) $stream['stream_source']);
     }
 
     public function series(ApiRequest $request, string $username, string $password, string $file): ApiResponse
     {
-        if ($this->authenticate($username, $password) === null) {
+        $line = $this->authenticate($username, $password);
+
+        if ($line === null) {
             return ApiResponse::error('Not found', 404);
         }
 
         $episode = Db::first(
-            'SELECT source FROM episodes WHERE id = ? AND enabled = 1',
+            'SELECT * FROM episodes WHERE id = ? AND enabled = 1',
             [$this->fileId($file)]
         );
 
-        return $this->redirectToSource($episode['source'] ?? null);
+        if ($episode === null || empty($episode['source'])) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        $series = Db::first('SELECT * FROM series WHERE id = ?', [(int) $episode['series_id']]) ?? [];
+
+        return $this->proxyFor($request, $line, $series + ['id' => (int) $episode['series_id']], (string) $episode['source']);
+    }
+
+    /**
+     * Signed URL hit by the player after a playlist is rewritten.
+     */
+    public function stream(ApiRequest $request, string $token): ApiResponse
+    {
+        $payload = ProxyToken::parse($token);
+
+        if ($payload === null) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        $line = Db::first('SELECT * FROM user_lines WHERE id = ?', [(int) $payload['l']]);
+        $stream = Db::first('SELECT * FROM streams WHERE id = ?', [(int) $payload['s']]);
+
+        if ($line === null || !(bool) $line['enabled']) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        // Series tokens reference a series id, not a streams row.
+        $stream ??= ['id' => (int) $payload['s']];
+
+        if ($line['exp_date'] !== null && $line['exp_date'] !== '' && (int) $line['exp_date'] <= time()) {
+            return ApiResponse::error('Not found', 404);
+        }
+
+        $proxy = $this->makeProxy($request, $line, $stream, (string) ($payload['sid'] ?? ''));
+
+        if (($payload['k'] ?? '') === 'playlist') {
+            return $proxy->servePlaylist((string) $payload['u']);
+        }
+
+        $durationHint = ($payload['k'] ?? '') === 'segment' ? 6 : 0;
+
+        return $proxy->serveMedia(
+            (string) $payload['u'],
+            $this->contentTypeFor((string) $payload['u']),
+            $durationHint
+        );
+    }
+
+    private function proxyFor(ApiRequest $request, array $line, array $stream, string $source): ApiResponse
+    {
+        $proxy = $this->makeProxy($request, $line, $stream);
+
+        if ($proxy->isPlaylistUrl($source)) {
+            return $proxy->servePlaylist($source);
+        }
+
+        $contentType = (($stream['stream_type'] ?? '') === 'live') ? 'video/mp2t' : $this->contentTypeFor($source);
+
+        return $proxy->serveMedia($source, $contentType, 0);
+    }
+
+    private function contentTypeFor(string $url): string
+    {
+        $extension = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'ts' => 'video/mp2t',
+            'm4s', 'mp4' => 'video/mp4',
+            'aac' => 'audio/aac',
+            'key' => 'application/octet-stream',
+            default => 'application/octet-stream',
+        };
+    }
+
+    private function makeProxy(ApiRequest $request, array $line, array $stream, string $sessionKey = ''): StreamProxy
+    {
+        return new StreamProxy(
+            $line,
+            $stream,
+            $this->isHttps($request) ? 'https' : 'http',
+            (string) $request->header('Host', 'localhost'),
+            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            (string) $request->header('User-Agent', ''),
+            $sessionKey !== '' ? $sessionKey : null
+        );
     }
 
     private function authenticate(string $username, string $password): ?array
@@ -430,21 +531,6 @@ class XtreamCompatController extends BaseApiController
              WHERE s.stream_type = 'movie' AND s.enabled = 1
              ORDER BY s.stream_display_name"
         );
-    }
-
-    private function redirectToSource(?string $source): ApiResponse
-    {
-        if ($source === null || $source === '') {
-            return ApiResponse::error('Not found', 404);
-        }
-
-        $scheme = strtolower((string) parse_url($source, PHP_URL_SCHEME));
-
-        if (!in_array($scheme, ['http', 'https'], true)) {
-            return ApiResponse::error('Not found', 404);
-        }
-
-        return ApiResponse::redirect($source);
     }
 
     private function fileId(string $file): int

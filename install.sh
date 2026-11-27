@@ -346,7 +346,7 @@ server {
         fastcgi_read_timeout 300s;
     }
 
-    location ~ ^/(live|movie|series|epg)/ {
+    location ~ ^/(live|movie|series|epg|stream)/ {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME ${APP_DIR}/src/Api/index.php;
         fastcgi_param REQUEST_URI \$request_uri;

@@ -14,6 +14,16 @@ export function formatBytes(bytes, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`
 }
 
+export function formatBitrate(kbps) {
+  const value = Number(kbps) || 0
+
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)} Mbps`
+  }
+
+  return `${Math.round(value)} kbps`
+}
+
 export function formatDuration(timestamp) {
   if (!timestamp) return ''
   const date = new Date(timestamp * 1000)

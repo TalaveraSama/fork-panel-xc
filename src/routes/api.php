@@ -208,6 +208,7 @@ $router->get('/xmltv.php', [XtreamCompatController::class, 'xmltv']);
 $router->get('/live/{username}/{password}/{file}', [XtreamCompatController::class, 'live']);
 $router->get('/movie/{username}/{password}/{file}', [XtreamCompatController::class, 'movie']);
 $router->get('/series/{username}/{password}/{file}', [XtreamCompatController::class, 'series']);
+$router->get('/stream/{token}', [XtreamCompatController::class, 'stream']);
 
 // ---- Streaming endpoints (signed tokens) ----------------------------------
 $router->get('/live/{token}', [StreamingController::class, 'live']);

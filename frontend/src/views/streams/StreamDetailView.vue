@@ -3,7 +3,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '@stores/ui'
 import streamsService from '@services/streams'
-import { formatNumber, formatDateTime, formatBytes } from '@utils/format'
+import { formatNumber, formatDateTime, formatBitrate } from '@utils/format'
 import { ArrowPathIcon, PlayIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -222,7 +222,7 @@ onMounted(fetchStream)
               <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Viewers</dt><dd class="font-medium text-dark-900 dark:text-white">{{ formatNumber(stats?.current_viewers || 0) }}</dd></div>
                 <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Connections</dt><dd class="font-medium text-dark-900 dark:text-white">{{ formatNumber(stats?.total_connections || 0) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Bandwidth</dt><dd class="font-medium text-dark-900 dark:text-white">{{ formatBytes(stats?.bandwidth || 0) }}</dd></div>
+                <div class="flex justify-between"><dt class="text-dark-500 dark:text-dark-400">Bandwidth</dt><dd class="font-medium text-dark-900 dark:text-white">{{ formatBitrate(stats?.bandwidth || 0) }}</dd></div>
               </dl>
             </div>
           </div>
@@ -260,7 +260,7 @@ onMounted(fetchStream)
             </div>
             <div class="card p-4">
               <p class="text-sm text-dark-500 dark:text-dark-400">Bandwidth</p>
-              <p class="text-3xl font-bold text-dark-900 dark:text-white mt-1">{{ formatBytes(stats?.bandwidth || 0) }}</p>
+              <p class="text-3xl font-bold text-dark-900 dark:text-white mt-1">{{ formatBitrate(stats?.bandwidth || 0) }}</p>
             </div>
             <div class="card p-4">
               <p class="text-sm text-dark-500 dark:text-dark-400">Stream status</p>
@@ -282,7 +282,7 @@ onMounted(fetchStream)
           </div>
 
           <p class="text-xs text-dark-500 dark:text-dark-400">
-            These counters come from <code>stream_stats</code>; they stay at 0 until a streaming/monitoring worker updates them.
+            These counters come from active gateway sessions (45 s window). They update as players request playlists and segments.
           </p>
         </div>
 

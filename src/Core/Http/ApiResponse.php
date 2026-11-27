@@ -9,11 +9,15 @@ namespace ForkPanelXc\Core\Http;
  */
 class ApiResponse
 {
+    private $streamer = null;
+
     private function __construct(
         private int $status = 200,
         private array $headers = [],
-        private string $body = ''
+        private string $body = '',
+        ?callable $streamer = null
     ) {
+        $this->streamer = $streamer;
     }
 
     public static function json(mixed $data, int $status = 200, array $headers = []): self
@@ -53,6 +57,18 @@ class ApiResponse
         return new self($status, ['Location' => $url]);
     }
 
+    /**
+     * Stream a binary response without buffering it in memory.
+     */
+    public static function stream(callable $streamer, array $headers = [], int $status = 200): self
+    {
+        return new self($status, array_merge([
+            'Content-Type' => 'application/octet-stream',
+            'Cache-Control' => 'no-cache, no-store',
+            'X-Accel-Buffering' => 'no',
+        ], $headers), '', $streamer);
+    }
+
     public static function noContent(): self
     {
         return new self(204);
@@ -86,6 +102,12 @@ class ApiResponse
 
         foreach ($this->headers as $key => $value) {
             header(sprintf('%s: %s', $key, $value));
+        }
+
+        if ($this->streamer !== null) {
+            ($this->streamer)();
+
+            return;
         }
 
         echo $this->body;

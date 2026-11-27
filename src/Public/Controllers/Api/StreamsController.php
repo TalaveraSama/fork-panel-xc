@@ -186,6 +186,8 @@ class StreamsController extends BaseApiController
 
     public function stats(ApiRequest $request, string $id): ApiResponse
     {
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
+
         $streamId = (int) $id;
         $stream = $this->find($streamId);
 

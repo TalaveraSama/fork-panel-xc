@@ -12,6 +12,8 @@ class DashboardController extends BaseApiController
 {
     public function stats(ApiRequest $request): ApiResponse
     {
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
+
         $totalStreams = (int) Db::column('SELECT COUNT(*) FROM streams');
         $onlineStreams = (int) Db::column("SELECT COUNT(*) FROM streams WHERE status = 'online'");
         $totalUsers = (int) Db::column('SELECT COUNT(*) FROM users');

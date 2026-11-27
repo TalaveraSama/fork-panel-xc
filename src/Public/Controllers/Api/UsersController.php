@@ -258,6 +258,8 @@ class UsersController extends BaseApiController
 
     public function linesIndex(ApiRequest $request): ApiResponse
     {
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
+
         [$page, $perPage, $offset] = $this->pagination($request);
         [$field, $direction] = $this->sort($request, ['id', 'username', 'exp_date', 'max_connections', 'enabled', 'created_at']);
 
@@ -318,6 +320,8 @@ class UsersController extends BaseApiController
 
     public function lineShow(ApiRequest $request, string $id): ApiResponse
     {
+        \ForkPanelXc\Domain\Stream\StreamStats::reconcile();
+
         $line = $this->findLine((int) $id);
 
         return $line === null

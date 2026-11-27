@@ -56,8 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Series streaming (/series/{token})
   - **Xtream Codes compatibility**: `/player_api.php`, `/get.php`, `/xmltv.php`
     and `/live|movie|series/{username}/{password}/{id}.{ext}` for IPTV Smarters,
-    XCIPTV and TiviMate (line credentials, 302 to the source). See
-    `docs/XTREAM-COMPAT.md`.
+    XCIPTV and TiviMate (line credentials). HLS playlists/segments are proxied
+    through the panel via signed `/stream/{token}` URLs, with per-session
+    viewer/connection/bandwidth stats. See `docs/XTREAM-COMPAT.md`.
   - EPG XML generation (/epg/{token}.xml)
   - Player API compatibility
   - Panel API (Ministra/STB) compatibility
